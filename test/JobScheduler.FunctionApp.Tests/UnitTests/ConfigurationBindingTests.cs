@@ -1,27 +1,36 @@
+using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
-using JobScheduler.FunctionApp.Core;
-using JobScheduler.FunctionApp.Core.Interfaces;
-using JobScheduler.FunctionApp.Services;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System.ComponentModel;
+using Xunit;
 
-internal class Program
+namespace JobScheduler.FunctionApp.Tests.UnitTests;
+
+public class ConfigurationBindingTests
 {
-    private static void Main(string[] args)
+    [Fact]
+    public void HttpMethod_ShouldBindFromStringConfiguration()
     {
-        var builder = FunctionsApplication.CreateBuilder(args);
-
-        builder.ConfigureFunctionsWebApplication();
-
-        // Configuration with custom binding for HttpMethod
-        builder.Services.Configure<JobSchedulerOptions>(options =>
+        // Arrange
+        var configurationData = new Dictionary<string, string?>
         {
-            var section = builder.Configuration.GetSection(JobSchedulerOptions.SectionName);
+            ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
+            ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = "GET"
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configurationData)
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        
+        // Use the same configuration approach as the application
+        services.Configure<JobSchedulerOptions>(options =>
+        {
+            var section = configuration.GetSection(JobSchedulerOptions.SectionName);
             section.Bind(options);
             
             // Manually fix HttpMethod properties that couldn't be bound
@@ -51,24 +60,14 @@ internal class Program
             }
         });
 
-        // Validate configuration on startup
-        builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
+        var serviceProvider = services.BuildServiceProvider();
 
-        // Shared HttpClient configuration
-        builder.Services.AddHttpClient();
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>().Value;
 
-        builder.Services
-            .AddApplicationInsightsTelemetryWorkerService()
-            .ConfigureFunctionsApplicationInsights();
-
-        // Register core services with appropriate lifetimes
-        builder.Services
-            .AddSingleton<ISecretManager, EnvironmentSecretManager>()
-            .AddSingleton<IJobConfigurationProvider, OptionsJobConfigurationProvider>()
-            .AddScoped<IJobExecutor, JobExecutor>()
-            .AddScoped<IJobLogger, JobLogger>()
-            .AddScoped<IJobMetrics, JobMetrics>();
-
-        builder.Build().Run();
+        // Assert
+        options.Jobs.Should().ContainKey("test-job");
+        var job = options.Jobs["test-job"];
+        job.HttpMethod.Should().Be(HttpMethod.Get);
     }
 }

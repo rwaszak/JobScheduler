@@ -1,3 +1,4 @@
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -24,14 +25,14 @@ namespace JobScheduler.FunctionApp.Functions
         [Function("ContainerAppHealthCheck")]
         public async Task ContainerAppHealthCheck([TimerTrigger("*/10 * * * * *")] TimerInfo myTimer)
         {
-            await ExecuteJobSafely("container-app-health", myTimer);
+            await ExecuteJobSafely(JobNames.ContainerAppHealth, myTimer);
         }
 
         // Additional jobs you can easily add
         [Function("DailyBatchProcessor")]
         public async Task DailyBatchProcessor([TimerTrigger("0 0 6 * * *")] TimerInfo myTimer)
         {
-            await ExecuteJobSafely("daily-batch", myTimer);
+            await ExecuteJobSafely(JobNames.DailyBatch, myTimer);
         }
 
         // Generic job execution with error handling

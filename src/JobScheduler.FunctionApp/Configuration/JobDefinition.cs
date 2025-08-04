@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace JobScheduler.FunctionApp.Configuration;
@@ -12,7 +13,7 @@ public class JobDefinition
     public string Endpoint { get; init; } = string.Empty;
     
     [Required]
-    public HttpMethod HttpMethod { get; init; } = null!;
+    public HttpMethod HttpMethod { get; set; } = null!;
     
     public AuthenticationType AuthType { get; init; } = AuthenticationType.None;
     public string? AuthSecretName { get; init; }

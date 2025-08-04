@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace JobScheduler.FunctionApp.Configuration;
 
@@ -36,8 +37,47 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
             }
         }
 
+        // Validate job name constants match configuration
+        ValidateJobNameConstants(options, failures);
+
         return failures.Any()
             ? ValidateOptionsResult.Fail(failures)
             : ValidateOptionsResult.Success;
+    }
+
+    /// <summary>
+    /// Validates that all job names defined in JobNames constants exist in configuration.
+    /// This helps catch discrepancies between code and configuration at startup.
+    /// </summary>
+    private void ValidateJobNameConstants(JobSchedulerOptions options, List<string> failures)
+    {
+        var definedJobNames = GetDefinedJobNames();
+        var configuredJobNames = options.Jobs.Keys.ToHashSet();
+
+        foreach (var jobName in definedJobNames)
+        {
+            if (!configuredJobNames.Contains(jobName))
+            {
+                failures.Add($"Job '{jobName}' is defined in JobNames constants but missing from configuration.");
+            }
+        }
+
+        // Optional: Warn about configured jobs that don't have constants
+        foreach (var configuredJob in configuredJobNames)
+        {
+            if (!definedJobNames.Contains(configuredJob))
+            {
+                failures.Add($"Job '{configuredJob}' is configured but not defined in JobNames constants. Consider adding it for type safety.");
+            }
+        }
+    }
+
+    private static HashSet<string> GetDefinedJobNames()
+    {
+        return typeof(JobNames)
+            .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+            .Select(f => (string)f.GetValue(null)!)
+            .ToHashSet();
     }
 }

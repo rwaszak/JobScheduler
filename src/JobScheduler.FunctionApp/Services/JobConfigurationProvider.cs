@@ -29,9 +29,9 @@ namespace JobScheduler.FunctionApp.Services
             var configs = new Dictionary<string, JobConfig>();
 
             // Migrate your existing configuration
-            configs["container-app-health"] = new JobConfig
+            configs[JobNames.ContainerAppHealth] = new JobConfig
             {
-                JobName = "container-app-health",
+                JobName = JobNames.ContainerAppHealth,
                 Endpoint = Environment.GetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT") ?? "",
                 HttpMethod = HttpMethod.Get,
                 AuthType = AuthenticationType.None, // Your current endpoint doesn't need auth
@@ -51,9 +51,9 @@ namespace JobScheduler.FunctionApp.Services
             };
 
             // Add more job configurations as needed
-            configs["daily-batch"] = new JobConfig
+            configs[JobNames.DailyBatch] = new JobConfig
             {
-                JobName = "daily-batch",
+                JobName = JobNames.DailyBatch,
                 Endpoint = Environment.GetEnvironmentVariable("DAILY_BATCH_ENDPOINT") ?? "",
                 HttpMethod = HttpMethod.Post,
                 AuthType = AuthenticationType.Bearer,
