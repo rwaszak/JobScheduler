@@ -29,7 +29,6 @@ namespace JobScheduler.FunctionApp.Core
         {
             var startTime = DateTime.UtcNow;
             var jobId = Guid.NewGuid().ToString("N")[..8];
-            var result = new JobResult();
 
             await _jobLogger.LogAsync(LogLevel.Information, config.JobName, "Job started", new
             {
@@ -45,12 +44,18 @@ namespace JobScheduler.FunctionApp.Core
 
                 // Execute with retry logic
                 var response = await ExecuteWithRetryAsync(config, authToken, jobId, cancellationToken);
+                
+                var duration = DateTime.UtcNow - startTime;
 
-                result.IsSuccess = true;
-                result.Status = "Completed";
-                result.ResponseData = response.Data;
-                result.AttemptCount = response.AttemptCount;
-                result.Duration = DateTime.UtcNow - startTime;
+                // Build successful result
+                var result = new JobResult
+                {
+                    IsSuccess = true,
+                    Status = "Completed",
+                    ResponseData = response.Data,
+                    AttemptCount = response.AttemptCount,
+                    Duration = duration
+                };
 
                 await _jobLogger.LogAsync(LogLevel.Information, config.JobName, "Job completed successfully", new
                 {
@@ -64,11 +69,17 @@ namespace JobScheduler.FunctionApp.Core
             }
             catch (Exception ex)
             {
-                result.IsSuccess = false;
-                result.Status = "Failed";
-                result.ErrorMessage = ex.Message;
-                result.AttemptCount = config.RetryPolicy.MaxAttempts; // Set to max attempts when all retries fail
-                result.Duration = DateTime.UtcNow - startTime;
+                var duration = DateTime.UtcNow - startTime;
+
+                // Build failure result
+                var result = new JobResult
+                {
+                    IsSuccess = false,
+                    Status = "Failed",
+                    ErrorMessage = ex.Message,
+                    AttemptCount = config.RetryPolicy.MaxAttempts, // Set to max attempts when all retries fail
+                    Duration = duration
+                };
 
                 await _jobLogger.LogAsync(LogLevel.Error, config.JobName, "Job failed", new
                 {
@@ -186,7 +197,7 @@ namespace JobScheduler.FunctionApp.Core
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            return JsonSerializer.Deserialize<object>(responseContent);
+            return JsonSerializer.Deserialize<object>(responseContent) ?? new object();
         }
 
         private bool ShouldRetry(HttpRequestException ex, RetryPolicy policy, int attempt)
