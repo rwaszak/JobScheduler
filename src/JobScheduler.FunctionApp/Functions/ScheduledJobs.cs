@@ -22,14 +22,14 @@ namespace JobScheduler.FunctionApp.Functions
         }
 
         // Your existing timer - now using the modular approach
-        [Function("ContainerAppHealthCheck")]
+        [Function(JobNames.ContainerAppHealth)]
         public async Task ContainerAppHealthCheck([TimerTrigger("*/10 * * * * *")] TimerInfo myTimer)
         {
             await ExecuteJobSafely(JobNames.ContainerAppHealth, myTimer);
         }
 
         // Additional jobs you can easily add
-        [Function("DailyBatchProcessor")]
+        [Function(JobNames.DailyBatch)]
         public async Task DailyBatchProcessor([TimerTrigger("0 0 6 * * *")] TimerInfo myTimer)
         {
             await ExecuteJobSafely(JobNames.DailyBatch, myTimer);
