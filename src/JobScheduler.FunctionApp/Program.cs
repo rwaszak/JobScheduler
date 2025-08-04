@@ -24,12 +24,8 @@ internal class Program
         // Validate configuration on startup
         builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
 
-        // HttpClient with factory pattern
-        builder.Services.AddHttpClient("job-executor", client =>
-        {
-            client.Timeout = TimeSpan.FromMinutes(5);
-            client.DefaultRequestHeaders.Add("User-Agent", "JobScheduler/1.0");
-        });
+        // Shared HttpClient configuration
+        builder.Services.AddHttpClient();
 
         builder.Services
             .AddApplicationInsightsTelemetryWorkerService()

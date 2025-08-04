@@ -141,7 +141,7 @@ namespace JobScheduler.FunctionApp.Core
 
         private async Task<object> MakeHttpCallAsync(JobConfig config, string? authToken, int attempt, CancellationToken cancellationToken)
         {
-            var httpClient = _httpClientFactory.CreateClient("job-executor");
+            var httpClient = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(config.HttpMethod, config.Endpoint);
 
             // Set headers
