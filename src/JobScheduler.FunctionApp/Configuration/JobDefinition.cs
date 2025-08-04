@@ -14,7 +14,7 @@ public class JobDefinition
     [Required]
     public HttpMethod HttpMethod { get; init; } = null!;
     
-    public string AuthType { get; init; } = "none";
+    public AuthenticationType AuthType { get; init; } = AuthenticationType.None;
     public string? AuthSecretName { get; init; }
     public string? RequestBody { get; init; }
     

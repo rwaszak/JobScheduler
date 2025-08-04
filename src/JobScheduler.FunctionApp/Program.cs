@@ -74,7 +74,7 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
                 failures.Add($"Job '{jobName}': Invalid endpoint URL format.");
             }
 
-            if (job.AuthType == "bearer" && string.IsNullOrEmpty(job.AuthSecretName))
+            if (job.AuthType == AuthenticationType.Bearer && string.IsNullOrEmpty(job.AuthSecretName))
             {
                 failures.Add($"Job '{jobName}': AuthSecretName is required when AuthType is 'bearer'.");
             }

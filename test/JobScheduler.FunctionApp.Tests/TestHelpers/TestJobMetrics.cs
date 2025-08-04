@@ -4,58 +4,23 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
 {
     public class TestJobMetrics : IJobMetrics
     {
-        private readonly List<SuccessMetric> _successMetrics = new();
-        private readonly List<FailureMetric> _failureMetrics = new();
+        public List<string> RecordedSuccesses { get; } = new();
+        public List<string> RecordedFailures { get; } = new();
+        
+        // Properties for backward compatibility with existing tests
+        public List<string> SuccessMetrics => RecordedSuccesses;
+        public List<string> FailureMetrics => RecordedFailures;
 
-        public IReadOnlyList<SuccessMetric> SuccessMetrics => _successMetrics.AsReadOnly();
-        public IReadOnlyList<FailureMetric> FailureMetrics => _failureMetrics.AsReadOnly();
-
-        public Task RecordJobSuccessAsync(string jobName, TimeSpan duration, int attemptCount)
+        public Task RecordJobSuccessAsync(string jobName, TimeSpan duration, int attempts)
         {
-            _successMetrics.Add(new SuccessMetric
-            {
-                JobName = jobName,
-                Duration = duration,
-                AttemptCount = attemptCount,
-                Timestamp = DateTime.UtcNow
-            });
-            
+            RecordedSuccesses.Add($"{jobName}-{duration.TotalMilliseconds}ms-{attempts}");
             return Task.CompletedTask;
         }
 
         public Task RecordJobFailureAsync(string jobName, TimeSpan duration, string errorMessage)
         {
-            _failureMetrics.Add(new FailureMetric
-            {
-                JobName = jobName,
-                Duration = duration,
-                ErrorMessage = errorMessage,
-                Timestamp = DateTime.UtcNow
-            });
-            
+            RecordedFailures.Add($"{jobName}-{duration.TotalMilliseconds}ms-{errorMessage}");
             return Task.CompletedTask;
-        }
-
-        public void Clear()
-        {
-            _successMetrics.Clear();
-            _failureMetrics.Clear();
-        }
-
-        public class SuccessMetric
-        {
-            public required string JobName { get; set; }
-            public TimeSpan Duration { get; set; }
-            public int AttemptCount { get; set; }
-            public DateTime Timestamp { get; set; }
-        }
-
-        public class FailureMetric
-        {
-            public required string JobName { get; set; }
-            public TimeSpan Duration { get; set; }
-            public required string ErrorMessage { get; set; }
-            public DateTime Timestamp { get; set; }
         }
     }
 }

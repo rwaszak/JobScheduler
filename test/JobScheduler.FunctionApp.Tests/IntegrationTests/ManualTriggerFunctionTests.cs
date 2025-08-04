@@ -1,4 +1,5 @@
 using FluentAssertions;
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Core.Models;
 using JobScheduler.FunctionApp.Functions;
@@ -51,7 +52,7 @@ public class ManualTriggerFunctionTests
             JobName = jobName,
             Endpoint = "https://api.test.com/endpoint",
             HttpMethod = HttpMethod.Post,
-            AuthType = "none"
+            AuthType = AuthenticationType.None
         };
 
         var jobResult = new JobResult
@@ -96,7 +97,7 @@ public class ManualTriggerFunctionTests
             JobName = jobName,
             Endpoint = "https://api.test.com/endpoint",
             HttpMethod = HttpMethod.Post,
-            AuthType = "none"
+            AuthType = AuthenticationType.None
         };
 
         var jobResult = new JobResult
@@ -155,7 +156,7 @@ public class ManualTriggerFunctionTests
             JobName = jobName,
             Endpoint = "https://api.test.com/endpoint",
             HttpMethod = HttpMethod.Post,
-            AuthType = "none"
+            AuthType = AuthenticationType.None
         };
 
         _mockConfigProvider
@@ -184,7 +185,7 @@ public class ManualTriggerFunctionTests
                 JobName = "job-1",
                 Endpoint = "https://api1.test.com",
                 HttpMethod = HttpMethod.Get,
-                AuthType = "none",
+                AuthType = AuthenticationType.None,
                 Tags = new Dictionary<string, string> { { "priority", "high" } }
             },
             new JobConfig
@@ -192,7 +193,7 @@ public class ManualTriggerFunctionTests
                 JobName = "job-2",
                 Endpoint = "https://api2.test.com",
                 HttpMethod = HttpMethod.Post,
-                AuthType = "bearer",
+                AuthType = AuthenticationType.Bearer,
                 AuthSecretName = "secret-2",
                 Tags = new Dictionary<string, string> { { "priority", "low" } }
             }
@@ -225,9 +226,9 @@ public class ManualTriggerFunctionTests
         // Arrange
         var jobConfigs = new[]
         {
-            new JobConfig { JobName = "job-1", Endpoint = "https://api1.test.com", HttpMethod = HttpMethod.Get, AuthType = "none" },
-            new JobConfig { JobName = "job-2", Endpoint = "https://api2.test.com", HttpMethod = HttpMethod.Post, AuthType = "none" },
-            new JobConfig { JobName = "job-3", Endpoint = "https://api3.test.com", HttpMethod = HttpMethod.Get, AuthType = "none" }
+            new JobConfig { JobName = "job-1", Endpoint = "https://api1.test.com", HttpMethod = HttpMethod.Get, AuthType = AuthenticationType.None },
+            new JobConfig { JobName = "job-2", Endpoint = "https://api2.test.com", HttpMethod = HttpMethod.Post, AuthType = AuthenticationType.None },
+            new JobConfig { JobName = "job-3", Endpoint = "https://api3.test.com", HttpMethod = HttpMethod.Get, AuthType = AuthenticationType.None }
         };
 
         _mockConfigProvider

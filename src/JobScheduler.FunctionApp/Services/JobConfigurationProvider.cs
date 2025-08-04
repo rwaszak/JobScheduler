@@ -1,4 +1,5 @@
-﻿using JobScheduler.FunctionApp.Core.Interfaces;
+﻿using JobScheduler.FunctionApp.Configuration;
+using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Core.Models;
 
 namespace JobScheduler.FunctionApp.Services
@@ -33,7 +34,7 @@ namespace JobScheduler.FunctionApp.Services
                 JobName = "container-app-health",
                 Endpoint = Environment.GetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT") ?? "",
                 HttpMethod = HttpMethod.Get,
-                AuthType = "none", // Your current endpoint doesn't need auth
+                AuthType = AuthenticationType.None, // Your current endpoint doesn't need auth
                 TimeoutSeconds = 30,
                 RetryPolicy = new RetryPolicy
                 {
@@ -55,7 +56,7 @@ namespace JobScheduler.FunctionApp.Services
                 JobName = "daily-batch",
                 Endpoint = Environment.GetEnvironmentVariable("DAILY_BATCH_ENDPOINT") ?? "",
                 HttpMethod = HttpMethod.Post,
-                AuthType = "bearer",
+                AuthType = AuthenticationType.Bearer,
                 AuthSecretName = "DAILY_BATCH_TOKEN",
                 TimeoutSeconds = 300,
                 RetryPolicy = new RetryPolicy

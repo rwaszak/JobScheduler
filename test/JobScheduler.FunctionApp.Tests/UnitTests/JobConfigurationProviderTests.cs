@@ -1,4 +1,5 @@
 using FluentAssertions;
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Services;
 using Xunit;
 
@@ -29,7 +30,7 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
             config.JobName.Should().Be("container-app-health");
             config.Endpoint.Should().Be("https://test.api.com/health");
             config.HttpMethod.Should().Be(HttpMethod.Get);
-            config.AuthType.Should().Be("none");
+            config.AuthType.Should().Be(AuthenticationType.None);
         }
 
         [Fact]

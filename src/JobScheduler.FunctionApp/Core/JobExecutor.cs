@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -66,6 +67,7 @@ namespace JobScheduler.FunctionApp.Core
                 result.IsSuccess = false;
                 result.Status = "Failed";
                 result.ErrorMessage = ex.Message;
+                result.AttemptCount = config.RetryPolicy.MaxAttempts; // Set to max attempts when all retries fail
                 result.Duration = DateTime.UtcNow - startTime;
 
                 await _jobLogger.LogAsync(LogLevel.Error, config.JobName, "Job failed", new
@@ -81,9 +83,9 @@ namespace JobScheduler.FunctionApp.Core
             }
         }
 
-        private async Task<string> GetAuthTokenAsync(JobConfig config)
+        private async Task<string?> GetAuthTokenAsync(JobConfig config)
         {
-            if (config.AuthType == "none" || string.IsNullOrEmpty(config.AuthSecretName))
+            if (config.AuthType == AuthenticationType.None || string.IsNullOrEmpty(config.AuthSecretName))
                 return null;
 
             return await _secretManager.GetSecretAsync(config.AuthSecretName);
@@ -91,7 +93,7 @@ namespace JobScheduler.FunctionApp.Core
 
         private async Task<(object Data, int AttemptCount)> ExecuteWithRetryAsync(
             JobConfig config,
-            string authToken,
+            string? authToken,
             string jobId,
             CancellationToken cancellationToken)
         {
@@ -137,7 +139,7 @@ namespace JobScheduler.FunctionApp.Core
             throw lastException ?? new Exception("All retry attempts failed");
         }
 
-        private async Task<object> MakeHttpCallAsync(JobConfig config, string authToken, int attempt, CancellationToken cancellationToken)
+        private async Task<object> MakeHttpCallAsync(JobConfig config, string? authToken, int attempt, CancellationToken cancellationToken)
         {
             var httpClient = _httpClientFactory.CreateClient("job-executor");
             using var request = new HttpRequestMessage(config.HttpMethod, config.Endpoint);
@@ -152,9 +154,9 @@ namespace JobScheduler.FunctionApp.Core
             // Set authentication
             if (!string.IsNullOrEmpty(authToken))
             {
-                if (config.AuthType == "bearer")
+                if (config.AuthType == AuthenticationType.Bearer)
                     request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
-                else if (config.AuthType == "apikey")
+                else if (config.AuthType == AuthenticationType.ApiKey)
                     request.Headers.Add("X-API-Key", authToken);
             }
 

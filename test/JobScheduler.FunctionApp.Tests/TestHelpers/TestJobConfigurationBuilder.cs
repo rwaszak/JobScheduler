@@ -1,3 +1,4 @@
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Models;
 
 namespace JobScheduler.FunctionApp.Tests.TestHelpers
@@ -9,7 +10,7 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
             JobName = "test-job",
             Endpoint = "https://api.test.com/endpoint",
             HttpMethod = HttpMethod.Post,
-            AuthType = "bearer",
+            AuthType = AuthenticationType.Bearer,
             TimeoutSeconds = 30,
             RetryPolicy = new RetryPolicy
             {
@@ -47,9 +48,22 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
             return this;
         }
 
-        public TestJobConfigurationBuilder WithAuthType(string authType)
+        public TestJobConfigurationBuilder WithAuthType(AuthenticationType authType)
         {
             _config.AuthType = authType;
+            return this;
+        }
+
+        // Overload for backward compatibility during migration
+        public TestJobConfigurationBuilder WithAuthType(string authType)
+        {
+            _config.AuthType = authType switch
+            {
+                "none" => AuthenticationType.None,
+                "bearer" => AuthenticationType.Bearer,
+                "apikey" => AuthenticationType.ApiKey,
+                _ => throw new ArgumentException($"Unknown auth type: {authType}")
+            };
             return this;
         }
 
