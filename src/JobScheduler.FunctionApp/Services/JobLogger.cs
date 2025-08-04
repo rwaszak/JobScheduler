@@ -1,18 +1,22 @@
 using System.Text.Json;
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JobScheduler.FunctionApp.Services
 {
     public class JobLogger : IJobLogger
     {
         private readonly ILogger<JobLogger> _logger;
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly LoggingOptions _loggingOptions;
 
-        public JobLogger(ILogger<JobLogger> logger, HttpClient httpClient)
+        public JobLogger(ILogger<JobLogger> logger, IHttpClientFactory httpClientFactory, IOptions<JobSchedulerOptions> options)
         {
             _logger = logger;
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
+            _loggingOptions = options.Value.Logging;
         }
 
         public async Task LogAsync(LogLevel level, string jobName, string message, object? metadata = null)
@@ -24,7 +28,7 @@ namespace JobScheduler.FunctionApp.Services
                 JobName = jobName,
                 Message = message,
                 Service = "job-executor",
-                Metadata = metadata
+                Metadata = _loggingOptions.IncludeMetadata ? metadata : null
             };
 
             // Log to ILogger (Application Insights)
@@ -38,16 +42,15 @@ namespace JobScheduler.FunctionApp.Services
         {
             try
             {
-                var datadogApiKey = Environment.GetEnvironmentVariable("DATADOG_API_KEY");
-                if (string.IsNullOrEmpty(datadogApiKey)) return;
+                if (string.IsNullOrEmpty(_loggingOptions.DatadogApiKey)) return;
 
                 var json = JsonSerializer.Serialize(logEntry);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                var datadogSite = Environment.GetEnvironmentVariable("DD_SITE") ?? "us3.datadoghq.com";
-                var url = $"https://http-intake.logs.{datadogSite}/v1/input/{datadogApiKey}";
+                var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{_loggingOptions.DatadogApiKey}";
 
-                await _httpClient.PostAsync(url, content);
+                using var httpClient = _httpClientFactory.CreateClient("job-logger");
+                await httpClient.PostAsync(url, content);
             }
             catch (Exception ex)
             {

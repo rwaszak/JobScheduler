@@ -23,15 +23,17 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
         {
             _httpHandler = new TestHttpMessageHandler();
             _httpClient = new HttpClient(_httpHandler);
+            var httpClientFactory = new TestHttpClientFactory(_httpClient);
             _secretManager = new EnvironmentSecretManager();
             
+            var testOptions = TestOptions.CreateDefault();
             var loggerProvider = new TestLoggerProvider<JobLogger>();
-            _jobLogger = new JobLogger(loggerProvider, new HttpClient());
+            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, testOptions);
             
             var metricsLoggerProvider = new TestLoggerProvider<JobMetrics>();
-            _jobMetrics = new JobMetrics(metricsLoggerProvider);
+            _jobMetrics = new JobMetrics(metricsLoggerProvider, testOptions);
             
-            _jobExecutor = new JobExecutor(_httpClient, _secretManager, _jobLogger, _jobMetrics);
+            _jobExecutor = new JobExecutor(httpClientFactory, _secretManager, _jobLogger, _jobMetrics);
         }
 
         [Fact]

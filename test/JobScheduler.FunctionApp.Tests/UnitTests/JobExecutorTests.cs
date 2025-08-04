@@ -20,11 +20,12 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
         {
             _httpHandler = new TestHttpMessageHandler();
             _httpClient = new HttpClient(_httpHandler);
+            var httpClientFactory = new TestHttpClientFactory(_httpClient);
             _secretManager = new TestSecretManager();
             _jobLogger = new TestJobLogger();
             _jobMetrics = new TestJobMetrics();
             
-            _jobExecutor = new JobExecutor(_httpClient, _secretManager, _jobLogger, _jobMetrics);
+            _jobExecutor = new JobExecutor(httpClientFactory, _secretManager, _jobLogger, _jobMetrics);
         }
 
         [Fact]

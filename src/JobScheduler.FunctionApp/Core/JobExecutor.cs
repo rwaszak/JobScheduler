@@ -7,18 +7,18 @@ namespace JobScheduler.FunctionApp.Core
 {
     public class JobExecutor : IJobExecutor
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ISecretManager _secretManager;
         private readonly IJobLogger _jobLogger;
         private readonly IJobMetrics _jobMetrics;
 
         public JobExecutor(
-            HttpClient httpClient,
+            IHttpClientFactory httpClientFactory,
             ISecretManager secretManager,
             IJobLogger jobLogger,
             IJobMetrics jobMetrics)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _secretManager = secretManager;
             _jobLogger = jobLogger;
             _jobMetrics = jobMetrics;
@@ -132,6 +132,7 @@ namespace JobScheduler.FunctionApp.Core
 
         private async Task<object> MakeHttpCallAsync(JobConfig config, string authToken, int attempt, CancellationToken cancellationToken)
         {
+            using var httpClient = _httpClientFactory.CreateClient("job-executor");
             using var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod), config.Endpoint);
 
             // Set headers
@@ -160,7 +161,7 @@ namespace JobScheduler.FunctionApp.Core
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(config.TimeoutSeconds));
             using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-            var response = await _httpClient.SendAsync(request, combinedCts.Token);
+            var response = await httpClient.SendAsync(request, combinedCts.Token);
 
             response.EnsureSuccessStatusCode();
 
