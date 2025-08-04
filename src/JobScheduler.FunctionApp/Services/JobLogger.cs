@@ -1,4 +1,3 @@
-// Services/JobLogger.cs
 using System.Text.Json;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Extensions.Logging;

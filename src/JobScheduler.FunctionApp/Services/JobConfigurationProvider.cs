@@ -1,5 +1,4 @@
-﻿// Services/JobConfigurationProvider.cs
-using JobScheduler.FunctionApp.Core.Interfaces;
+﻿using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Core.Models;
 
 namespace JobScheduler.FunctionApp.Services

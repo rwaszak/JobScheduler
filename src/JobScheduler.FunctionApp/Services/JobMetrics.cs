@@ -1,4 +1,3 @@
-// Services/JobMetrics.cs
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 

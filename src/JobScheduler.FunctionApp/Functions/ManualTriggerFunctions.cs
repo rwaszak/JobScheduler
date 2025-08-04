@@ -1,4 +1,3 @@
-// Functions/ManualTriggerFunctions.cs
 using System.Text.Json;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Azure.Functions.Worker;

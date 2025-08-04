@@ -1,4 +1,3 @@
-// Functions/ScheduledJobs.cs
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;

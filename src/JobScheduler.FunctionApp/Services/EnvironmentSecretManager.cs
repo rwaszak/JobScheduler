@@ -1,4 +1,3 @@
-// Services/SecretManager.cs
 using JobScheduler.FunctionApp.Core.Interfaces;
 
 namespace JobScheduler.FunctionApp.Services

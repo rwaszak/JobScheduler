@@ -1,4 +1,3 @@
-// IntegrationTests/FunctionEndpointTests.cs
 using FluentAssertions;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Core.Models;
