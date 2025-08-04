@@ -16,7 +16,7 @@ namespace JobScheduler.FunctionApp.Services
             _httpClient = httpClient;
         }
 
-        public async Task LogAsync(LogLevel level, string jobName, string message, object metadata = null)
+        public async Task LogAsync(LogLevel level, string jobName, string message, object? metadata = null)
         {
             var logEntry = new
             {

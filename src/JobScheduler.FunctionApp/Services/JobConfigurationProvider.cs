@@ -76,4 +76,9 @@ namespace JobScheduler.FunctionApp.Services
             return configs;
         }
     }
+
+    // Simple alias for testing purposes
+    public class JobConfigurationProvider : EnvironmentJobConfigurationProvider
+    {
+    }
 }
