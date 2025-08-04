@@ -1,4 +1,4 @@
-﻿namespace HelloWorldFunctionApp.Core.Models
+﻿namespace JobScheduler.FunctionApp.Core.Models
 {
     public class JobResult
     {

@@ -1,11 +1,11 @@
 // Functions/ManualTriggerFunctions.cs
 using System.Text.Json;
-using HelloWorldFunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
-namespace HelloWorldFunctionApp.Functions
+namespace JobScheduler.FunctionApp.Functions
 {
     public class ManualTriggerFunctions
     {

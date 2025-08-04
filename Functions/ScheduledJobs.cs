@@ -1,9 +1,9 @@
 // Functions/ScheduledJobs.cs
-using HelloWorldFunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace HelloWorldFunctionApp.Functions
+namespace JobScheduler.FunctionApp.Functions
 {
     public class ScheduledJobs
     {

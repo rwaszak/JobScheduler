@@ -1,6 +1,6 @@
-using HelloWorldFunctionApp.Core;
-using HelloWorldFunctionApp.Core.Interfaces;
-using HelloWorldFunctionApp.Services;
+using JobScheduler.FunctionApp.Core;
+using JobScheduler.FunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;

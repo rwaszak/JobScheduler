@@ -1,8 +1,8 @@
 ﻿// Services/JobConfigurationProvider.cs
-using HelloWorldFunctionApp.Core.Interfaces;
-using HelloWorldFunctionApp.Core.Models;
+using JobScheduler.FunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Models;
 
-namespace HelloWorldFunctionApp.Services
+namespace JobScheduler.FunctionApp.Services
 {
     public class EnvironmentJobConfigurationProvider : IJobConfigurationProvider
     {

@@ -1,9 +1,9 @@
 using System.Text.Json;
-using HelloWorldFunctionApp.Core.Interfaces;
-using HelloWorldFunctionApp.Core.Models;
+using JobScheduler.FunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Models;
 using Microsoft.Extensions.Logging;
 
-namespace HelloWorldFunctionApp.Core
+namespace JobScheduler.FunctionApp.Core
 {
     public class JobExecutor : IJobExecutor
     {

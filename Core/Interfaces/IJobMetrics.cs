@@ -1,4 +1,4 @@
-﻿namespace HelloWorldFunctionApp.Core.Interfaces
+﻿namespace JobScheduler.FunctionApp.Core.Interfaces
 {
     public interface IJobMetrics
     {

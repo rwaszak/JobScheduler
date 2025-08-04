@@ -1,8 +1,8 @@
 // Services/JobMetrics.cs
-using HelloWorldFunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace HelloWorldFunctionApp.Services
+namespace JobScheduler.FunctionApp.Services
 {
     public class JobMetrics : IJobMetrics
     {

@@ -1,6 +1,6 @@
-﻿using HelloWorldFunctionApp.Core.Models;
+﻿using JobScheduler.FunctionApp.Core.Models;
 
-namespace HelloWorldFunctionApp.Core.Interfaces
+namespace JobScheduler.FunctionApp.Core.Interfaces
 {
     public interface IJobConfigurationProvider
     {

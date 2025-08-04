@@ -1,7 +1,7 @@
 // Services/SecretManager.cs
-using HelloWorldFunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Interfaces;
 
-namespace HelloWorldFunctionApp.Services
+namespace JobScheduler.FunctionApp.Services
 {
     public class EnvironmentSecretManager : ISecretManager
     {

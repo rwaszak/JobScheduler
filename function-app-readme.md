@@ -1,4 +1,4 @@
-# HelloWorld Function App Scheduler
+# Job Scheduler
 
 A .NET 8 Azure Function App that demonstrates scheduled job execution by calling Container App endpoints on a timer.
 
@@ -71,12 +71,12 @@ Best for debugging code and understanding data flow:
 When using Visual Studio or need to test immediately:
 
 ```bash
-curl -X POST http://localhost:7071/admin/functions/HelloWorldScheduler
+curl -X POST http://localhost:7071/admin/functions/JobScheduler
 ```
 
 ## Timer Schedule
 
-Configure in `HelloWorldScheduler.cs`:
+Configure in `JobScheduler.cs`:
 
 ```csharp
 [TimerTrigger("*/10 * * * * *")]  // Every 10 seconds (testing)
