@@ -15,8 +15,11 @@ public class HelloWorldScheduler
         _httpClient = httpClient;
     }
 
+
+    // Azure functions uses a 6 field cron expression format, the first field is seconds
+    // so "0 * * * * *" means every minute at second 0
     [Function("HelloWorldScheduler")]
-    public async Task Run([TimerTrigger("*/10 * * * * *")] TimerInfo myTimer)
+    public async Task Run([TimerTrigger("0 * * * * *")] TimerInfo myTimer)
     {
         _logger.LogInformation("Function executed at: {time}", DateTime.Now);
 
