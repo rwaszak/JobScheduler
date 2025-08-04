@@ -12,7 +12,7 @@ public class JobDefinition
     public string Endpoint { get; init; } = string.Empty;
     
     [Required]
-    public string HttpMethod { get; init; } = "GET";
+    public HttpMethod HttpMethod { get; init; } = null!;
     
     public string AuthType { get; init; } = "none";
     public string? AuthSecretName { get; init; }

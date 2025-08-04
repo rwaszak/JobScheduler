@@ -46,7 +46,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             {
                 JobName = "integration-test",
                 Endpoint = "https://api.integration.test/endpoint",
-                HttpMethod = "POST",
+                HttpMethod = HttpMethod.Post,
                 AuthType = "bearer",
                 AuthSecretName = "test-auth-token",
                 TimeoutSeconds = 30,
@@ -105,7 +105,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             {
                 JobName = "retry-test",
                 Endpoint = "https://api.retry.test/endpoint",
-                HttpMethod = "GET",
+                HttpMethod = HttpMethod.Get,
                 AuthType = "bearer",
                 AuthSecretName = "retry-test-token",
                 TimeoutSeconds = 30,
@@ -160,7 +160,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             {
                 JobName = "failure-test",
                 Endpoint = "https://api.failure.test/endpoint",
-                HttpMethod = "POST",
+                HttpMethod = HttpMethod.Post,
                 AuthType = "none",
                 RetryPolicy = new RetryPolicy
                 {
@@ -229,7 +229,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             {
                 JobName = $"auth-test-{authType}",
                 Endpoint = "https://api.auth.test/endpoint",
-                HttpMethod = "GET",
+                HttpMethod = HttpMethod.Get,
                 AuthType = authType,
                 AuthSecretName = envVarName,
                 RetryPolicy = new RetryPolicy { MaxAttempts = 1 }

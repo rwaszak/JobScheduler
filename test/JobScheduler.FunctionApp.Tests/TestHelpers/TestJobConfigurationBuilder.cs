@@ -8,7 +8,7 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
         {
             JobName = "test-job",
             Endpoint = "https://api.test.com/endpoint",
-            HttpMethod = "POST",
+            HttpMethod = HttpMethod.Post,
             AuthType = "bearer",
             TimeoutSeconds = 30,
             RetryPolicy = new RetryPolicy
@@ -16,7 +16,8 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
                 MaxAttempts = 3,
                 BaseDelayMs = 1000,
                 BackoffMultiplier = 2.0,
-                MaxDelayMs = 30000
+                MaxDelayMs = 30000,
+                RetryableStatusCodes = new() { 429, 502, 503, 504 } // Keep default retryable status codes
             }
         };
 
@@ -35,6 +36,12 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
         }
 
         public TestJobConfigurationBuilder WithHttpMethod(string method)
+        {
+            _config.HttpMethod = new HttpMethod(method);
+            return this;
+        }
+
+        public TestJobConfigurationBuilder WithHttpMethod(HttpMethod method)
         {
             _config.HttpMethod = method;
             return this;

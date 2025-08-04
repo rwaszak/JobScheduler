@@ -4,7 +4,7 @@
     {
         public string JobName { get; set; }
         public string Endpoint { get; set; }
-        public string HttpMethod { get; set; } = "POST";
+        public HttpMethod HttpMethod { get; set; } = null!;
         public string AuthType { get; set; } = "bearer";
         public string AuthSecretName { get; set; }
         public Dictionary<string, string> Headers { get; set; } = new();

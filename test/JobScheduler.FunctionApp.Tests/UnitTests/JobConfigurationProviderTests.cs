@@ -28,7 +28,7 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
             config.Should().NotBeNull();
             config.JobName.Should().Be("container-app-health");
             config.Endpoint.Should().Be("https://test.api.com/health");
-            config.HttpMethod.Should().Be("GET");
+            config.HttpMethod.Should().Be(HttpMethod.Get);
             config.AuthType.Should().Be("none");
         }
 

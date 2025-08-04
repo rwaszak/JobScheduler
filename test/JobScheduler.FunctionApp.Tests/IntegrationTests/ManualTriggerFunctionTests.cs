@@ -50,7 +50,7 @@ public class ManualTriggerFunctionTests
         {
             JobName = jobName,
             Endpoint = "https://api.test.com/endpoint",
-            HttpMethod = "POST",
+            HttpMethod = HttpMethod.Post,
             AuthType = "none"
         };
 
@@ -95,7 +95,7 @@ public class ManualTriggerFunctionTests
         {
             JobName = jobName,
             Endpoint = "https://api.test.com/endpoint",
-            HttpMethod = "POST",
+            HttpMethod = HttpMethod.Post,
             AuthType = "none"
         };
 
@@ -154,7 +154,7 @@ public class ManualTriggerFunctionTests
         {
             JobName = jobName,
             Endpoint = "https://api.test.com/endpoint",
-            HttpMethod = "POST",
+            HttpMethod = HttpMethod.Post,
             AuthType = "none"
         };
 
@@ -183,7 +183,7 @@ public class ManualTriggerFunctionTests
             {
                 JobName = "job-1",
                 Endpoint = "https://api1.test.com",
-                HttpMethod = "GET",
+                HttpMethod = HttpMethod.Get,
                 AuthType = "none",
                 Tags = new Dictionary<string, string> { { "priority", "high" } }
             },
@@ -191,7 +191,7 @@ public class ManualTriggerFunctionTests
             {
                 JobName = "job-2",
                 Endpoint = "https://api2.test.com",
-                HttpMethod = "POST",
+                HttpMethod = HttpMethod.Post,
                 AuthType = "bearer",
                 AuthSecretName = "secret-2",
                 Tags = new Dictionary<string, string> { { "priority", "low" } }
@@ -212,7 +212,7 @@ public class ManualTriggerFunctionTests
         
         var job1 = result.First(j => j.JobName == "job-1");
         job1.Endpoint.Should().Be("https://api1.test.com");
-        job1.HttpMethod.Should().Be("GET");
+        job1.HttpMethod.Should().Be(HttpMethod.Get);
         job1.AuthSecretName.Should().BeNullOrEmpty();
         
         var job2 = result.First(j => j.JobName == "job-2");
@@ -225,9 +225,9 @@ public class ManualTriggerFunctionTests
         // Arrange
         var jobConfigs = new[]
         {
-            new JobConfig { JobName = "job-1", Endpoint = "https://api1.test.com", HttpMethod = "GET", AuthType = "none" },
-            new JobConfig { JobName = "job-2", Endpoint = "https://api2.test.com", HttpMethod = "POST", AuthType = "none" },
-            new JobConfig { JobName = "job-3", Endpoint = "https://api3.test.com", HttpMethod = "GET", AuthType = "none" }
+            new JobConfig { JobName = "job-1", Endpoint = "https://api1.test.com", HttpMethod = HttpMethod.Get, AuthType = "none" },
+            new JobConfig { JobName = "job-2", Endpoint = "https://api2.test.com", HttpMethod = HttpMethod.Post, AuthType = "none" },
+            new JobConfig { JobName = "job-3", Endpoint = "https://api3.test.com", HttpMethod = HttpMethod.Get, AuthType = "none" }
         };
 
         _mockConfigProvider
