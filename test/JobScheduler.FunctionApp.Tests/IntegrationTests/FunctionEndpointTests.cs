@@ -4,6 +4,7 @@ using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Core.Models;
 using JobScheduler.FunctionApp.Functions;
 using JobScheduler.FunctionApp.Tests.TestHelpers;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -148,23 +149,28 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             // Set environment variable for test
             Environment.SetEnvironmentVariable("ENVIRONMENT", "integration-test");
 
-            // Act
-            var result = _mockConfigProvider.Object.GetAllJobConfigs();
-            var environment = Environment.GetEnvironmentVariable("ENVIRONMENT");
+            try
+            {
+                // Act
+                var result = _mockConfigProvider.Object.GetAllJobConfigs();
+                var environment = Environment.GetEnvironmentVariable("ENVIRONMENT");
 
-            // Assert
-            result.Should().HaveCount(3);
-            environment.Should().Be("integration-test");
+                // Assert
+                result.Should().HaveCount(3);
+                environment.Should().Be("integration-test");
 
-            // Verify jobs contain expected authentication types
-            result.Should().Contain(j => j.AuthType == AuthenticationType.None);
-            result.Should().Contain(j => j.AuthType == AuthenticationType.Bearer);
-            result.Should().Contain(j => j.AuthType == AuthenticationType.ApiKey);
+                // Verify jobs contain expected authentication types
+                result.Should().Contain(j => j.AuthType == AuthenticationType.None);
+                result.Should().Contain(j => j.AuthType == AuthenticationType.Bearer);
+                result.Should().Contain(j => j.AuthType == AuthenticationType.ApiKey);
 
-            // Cleanup
-            Environment.SetEnvironmentVariable("ENVIRONMENT", null);
-            
-            _mockConfigProvider.Verify(p => p.GetAllJobConfigs(), Times.Once);
+                _mockConfigProvider.Verify(p => p.GetAllJobConfigs(), Times.Once);
+            }
+            finally
+            {
+                // Cleanup
+                Environment.SetEnvironmentVariable("ENVIRONMENT", null);
+            }
         }
 
         [Fact]
@@ -184,6 +190,134 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             exception.Message.Should().Contain($"Job configuration not found for: {jobName}");
             
             _mockConfigProvider.Verify(p => p.GetJobConfig(jobName), Times.Once);
+        }
+
+        [Fact]
+        public async Task ScheduledJobs_ExecuteJobSafely_HandlesSuccessfulExecution()
+        {
+            // Arrange
+            var mockJobExecutor = new Mock<IJobExecutor>();
+            var mockConfigProvider = new Mock<IJobConfigurationProvider>();
+            var testLogger = new TestLoggerProvider<ScheduledJobs>();
+
+            var jobConfig = TestJobConfigurationBuilder.Default()
+                .WithJobName("container-app-health")
+                .WithAuthType(AuthenticationType.None)
+                .Build();
+
+            var jobResult = new JobResult
+            {
+                IsSuccess = true,
+                Status = "Completed",
+                Duration = TimeSpan.FromMilliseconds(100),
+                AttemptCount = 1
+            };
+
+            mockConfigProvider
+                .Setup(p => p.GetJobConfig("container-app-health"))
+                .Returns(jobConfig);
+
+            mockJobExecutor
+                .Setup(e => e.ExecuteAsync(It.IsAny<JobConfig>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(jobResult);
+
+            var scheduledJobs = new ScheduledJobs(
+                mockJobExecutor.Object,
+                mockConfigProvider.Object,
+                testLogger);
+
+            var timerInfo = new TestTimerInfo();
+
+            // Act
+            await scheduledJobs.ContainerAppHealthCheck(timerInfo);
+
+            // Assert
+            mockConfigProvider.Verify(p => p.GetJobConfig("container-app-health"), Times.Once);
+            mockJobExecutor.Verify(e => e.ExecuteAsync(It.IsAny<JobConfig>(), It.IsAny<CancellationToken>()), Times.Once);
+
+            testLogger.Logs.Should().HaveCount(2);
+            testLogger.Logs[0].Message.Should().Contain("Starting scheduled job: container-app-health");
+            testLogger.Logs[1].Message.Should().Contain("Job container-app-health completed successfully");
+        }
+
+        [Fact]
+        public async Task ScheduledJobs_ExecuteJobSafely_HandlesFailedExecution()
+        {
+            // Arrange
+            var mockJobExecutor = new Mock<IJobExecutor>();
+            var mockConfigProvider = new Mock<IJobConfigurationProvider>();
+            var testLogger = new TestLoggerProvider<ScheduledJobs>();
+
+            var jobConfig = TestJobConfigurationBuilder.Default()
+                .WithJobName("container-app-health")
+                .WithAuthType(AuthenticationType.None)
+                .Build();
+
+            var jobResult = new JobResult
+            {
+                IsSuccess = false,
+                Status = "Failed",
+                ErrorMessage = "Network timeout",
+                Duration = TimeSpan.FromMilliseconds(5000)
+            };
+
+            mockConfigProvider
+                .Setup(p => p.GetJobConfig("container-app-health"))
+                .Returns(jobConfig);
+
+            mockJobExecutor
+                .Setup(e => e.ExecuteAsync(It.IsAny<JobConfig>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(jobResult);
+
+            var scheduledJobs = new ScheduledJobs(
+                mockJobExecutor.Object,
+                mockConfigProvider.Object,
+                testLogger);
+
+            var timerInfo = new TestTimerInfo();
+
+            // Act
+            await scheduledJobs.ContainerAppHealthCheck(timerInfo);
+
+            // Assert
+            testLogger.Logs.Should().HaveCount(2);
+            testLogger.Logs[1].LogLevel.Should().Be(LogLevel.Error);
+            testLogger.Logs[1].Message.Should().Contain("Job container-app-health failed: Network timeout");
+        }
+
+        [Fact]
+        public async Task ScheduledJobs_ExecuteJobSafely_HandlesExceptions()
+        {
+            // Arrange
+            var mockJobExecutor = new Mock<IJobExecutor>();
+            var mockConfigProvider = new Mock<IJobConfigurationProvider>();
+            var testLogger = new TestLoggerProvider<ScheduledJobs>();
+
+            mockConfigProvider
+                .Setup(p => p.GetJobConfig("container-app-health"))
+                .Throws(new ArgumentException("Job not found"));
+
+            var scheduledJobs = new ScheduledJobs(
+                mockJobExecutor.Object,
+                mockConfigProvider.Object,
+                testLogger);
+
+            var timerInfo = new TestTimerInfo();
+
+            // Act
+            await scheduledJobs.ContainerAppHealthCheck(timerInfo);
+
+            // Assert
+            testLogger.Logs.Should().HaveCount(2);
+            testLogger.Logs[1].LogLevel.Should().Be(LogLevel.Error);
+            testLogger.Logs[1].Message.Should().Contain("Unexpected error in job container-app-health");
+            testLogger.Logs[1].Exception.Should().BeOfType<ArgumentException>();
+        }
+
+        // Simple TimerInfo implementation for testing
+        private class TestTimerInfo : TimerInfo
+        {
+            // TimerInfo is abstract, so we just need a concrete implementation for testing
         }
     }
 }

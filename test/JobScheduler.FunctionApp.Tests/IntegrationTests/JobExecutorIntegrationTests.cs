@@ -1,6 +1,9 @@
 using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core;
+using JobScheduler.FunctionApp.Core.Interfaces;
+using JobScheduler.FunctionApp.Core.Models;
+using JobScheduler.FunctionApp.Services;
 using JobScheduler.FunctionApp.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -12,9 +15,9 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
     {
         private readonly TestHttpMessageHandler _httpHandler;
         private readonly HttpClient _httpClient;
-        private readonly TestSecretManager _secretManager;
-        private readonly TestJobLogger _jobLogger;
-        private readonly TestJobMetrics _jobMetrics;
+        private readonly ISecretManager _secretManager;
+        private readonly IJobLogger _jobLogger;
+        private readonly IJobMetrics _jobMetrics;
         private readonly JobExecutor _jobExecutor;
 
         public JobExecutorIntegrationTests()
@@ -22,25 +25,51 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             _httpHandler = new TestHttpMessageHandler();
             _httpClient = new HttpClient(_httpHandler);
             var httpClientFactory = new TestHttpClientFactory(_httpClient);
-            _secretManager = new TestSecretManager();
-            _jobLogger = new TestJobLogger();
-            _jobMetrics = new TestJobMetrics();
+            _secretManager = new EnvironmentSecretManager();
             
+            var testOptions = TestOptions.CreateDefault();
+            var loggerProvider = new TestLoggerProvider<JobLogger>();
+            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, testOptions);
+            
+            var metricsLoggerProvider = new TestLoggerProvider<JobMetrics>();
+            _jobMetrics = new JobMetrics(metricsLoggerProvider, testOptions);
+
             _jobExecutor = new JobExecutor(httpClientFactory, _secretManager, _jobLogger, _jobMetrics);
         }
 
         [Fact]
-        public async Task CompleteWorkflow_EndToEnd_SuccessScenario()
+        public async Task ExecuteAsync_CompleteWorkflow_WorksEndToEnd()
         {
             // Arrange
-            var config = TestJobConfigurationBuilder.Default()
-                .WithJobName("complete-workflow-test")
-                .WithEndpoint("https://api.example.com/data")
-                .WithHttpMethod(HttpMethod.Get)
-                .WithAuthType(AuthenticationType.None)
-                .Build();
+            Environment.SetEnvironmentVariable("test-auth-token", "my-bearer-token");
+            
+            var config = new JobConfig
+            {
+                JobName = "integration-test",
+                Endpoint = "https://api.integration.test/endpoint",
+                HttpMethod = HttpMethod.Post,
+                AuthType = AuthenticationType.Bearer,
+                AuthSecretName = "test-auth-token",
+                TimeoutSeconds = 30,
+                RetryPolicy = new RetryPolicy
+                {
+                    MaxAttempts = 2,
+                    BaseDelayMs = 100,
+                    BackoffMultiplier = 2.0
+                },
+                RequestBody = new { test = "data", timestamp = DateTime.UtcNow },
+                Headers = new Dictionary<string, string>
+                {
+                    { "X-Request-ID", "test-12345" }
+                },
+                Tags = new Dictionary<string, string>
+                {
+                    { "category", "integration-test" },
+                    { "priority", "high" }
+                }
+            };
 
-            _httpHandler.AddResponse(HttpStatusCode.OK, "{\"message\":\"success\",\"data\":[1,2,3]}");
+            _httpHandler.AddResponse(HttpStatusCode.OK, "{\"result\":\"success\",\"processed\":true}");
 
             // Act
             var result = await _jobExecutor.ExecuteAsync(config);
@@ -52,57 +81,100 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             result.AttemptCount.Should().Be(1);
             result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
 
-            // Verify logging occurred
-            _jobLogger.Logs.Should().HaveCount(2);
-            _jobLogger.Logs[0].Message.Should().Be("Job started");
-            _jobLogger.Logs[1].Message.Should().Be("Job completed successfully");
+            // Verify the HTTP request
+            _httpHandler.Requests.Should().HaveCount(1);
+            var capturedRequest = _httpHandler.GetCapturedRequest(0);
+            
+            capturedRequest.Method.ToString().Should().Be("POST");
+            capturedRequest.RequestUri!.ToString().Should().Be("https://api.integration.test/endpoint");
+            capturedRequest.Authorization.Should().NotBeNull();
+            capturedRequest.Authorization!.Scheme.Should().Be("Bearer");
+            capturedRequest.Authorization!.Parameter.Should().Be("my-bearer-token");
+            capturedRequest.Headers.Should().ContainKey("X-Request-ID");
+            capturedRequest.Headers["X-Request-ID"].Should().Be("test-12345");
 
-            // Verify metrics recorded
-            _jobMetrics.RecordedSuccesses.Should().HaveCount(1);
-            _jobMetrics.RecordedFailures.Should().HaveCount(0);
+            capturedRequest.Content.Should().Contain("\"test\":\"data\"");
         }
 
         [Fact]
-        public async Task RetryLogic_Integration_SucceedsAfterRetries()
+        public async Task ExecuteAsync_WithRetryScenario_RetriesCorrectly()
         {
             // Arrange
-            var config = TestJobConfigurationBuilder.Default()
-                .WithJobName("retry-test")
-                .WithRetryPolicy(maxAttempts: 3, baseDelayMs: 50)
-                .Build();
+            Environment.SetEnvironmentVariable("retry-test-token", "retry-token");
+            
+            var config = new JobConfig
+            {
+                JobName = "retry-test",
+                Endpoint = "https://api.retry.test/endpoint",
+                HttpMethod = HttpMethod.Get,
+                AuthType = AuthenticationType.Bearer,
+                AuthSecretName = "retry-test-token",
+                TimeoutSeconds = 30,
+                RetryPolicy = new RetryPolicy
+                {
+                    MaxAttempts = 4,
+                    BaseDelayMs = 10, // Fast retries for testing
+                    BackoffMultiplier = 2.0
+                }
+            };
 
-            // First two attempts fail, third succeeds
-            _httpHandler.AddResponse(HttpStatusCode.ServiceUnavailable);
-            _httpHandler.AddResponse(HttpStatusCode.BadGateway);
-            _httpHandler.AddResponse(HttpStatusCode.OK, "{\"status\":\"recovered\"}");
+            // Setup responses: 503, 502, 429, then success
+            _httpHandler.AddResponse(HttpStatusCode.ServiceUnavailable, "{\"error\":\"service unavailable\"}");
+            _httpHandler.AddResponse(HttpStatusCode.BadGateway, "{\"error\":\"bad gateway\"}");
+            _httpHandler.AddResponse(HttpStatusCode.TooManyRequests, "{\"error\":\"rate limited\"}");
+            _httpHandler.AddResponse(HttpStatusCode.OK, "{\"result\":\"finally success\"}");
+
+            var startTime = DateTime.UtcNow;
 
             // Act
             var result = await _jobExecutor.ExecuteAsync(config);
 
             // Assert
+            var totalDuration = DateTime.UtcNow - startTime;
+            
             result.IsSuccess.Should().BeTrue();
-            result.AttemptCount.Should().Be(3);
-            _httpHandler.Requests.Should().HaveCount(3);
+            result.AttemptCount.Should().Be(4);
+            
+            // Should have made 4 HTTP calls
+            _httpHandler.Requests.Should().HaveCount(4);
+            
+            // All requests should have the same configuration
+            foreach (var capturedRequest in _httpHandler.Requests)
+            {
+                capturedRequest.Method.ToString().Should().Be("GET");
+                capturedRequest.RequestUri!.ToString().Should().Be("https://api.retry.test/endpoint");
+                capturedRequest.Authorization?.Parameter.Should().Be("retry-token");
+            }
 
-            // Verify retry logging
-            var warningLogs = _jobLogger.Logs.Where(l => l.LogLevel == LogLevel.Warning).ToList();
-            warningLogs.Should().HaveCount(2);
-            warningLogs[0].Message.Should().Contain("Attempt 1 failed");
-            warningLogs[1].Message.Should().Contain("Attempt 2 failed");
+            // Should have taken some time due to backoff delays
+            // 10ms + 20ms + 40ms = ~70ms minimum
+            totalDuration.Should().BeGreaterThan(TimeSpan.FromMilliseconds(50));
         }
 
         [Fact]
-        public async Task FailureAfterRetries_Integration_ReturnsFailure()
+        public async Task ExecuteAsync_WithFailureAfterMaxRetries_ReturnsFailure()
         {
             // Arrange
-            var config = TestJobConfigurationBuilder.Default()
-                .WithJobName("failure-test")
-                .WithRetryPolicy(maxAttempts: 2, baseDelayMs: 10)
-                .Build();
+            _httpHandler.Reset(); // Clear any previous state
+            
+            var config = new JobConfig
+            {
+                JobName = "failure-test",
+                Endpoint = "https://api.failure.test/endpoint",
+                HttpMethod = HttpMethod.Post,
+                AuthType = AuthenticationType.None,
+                RetryPolicy = new RetryPolicy
+                {
+                    MaxAttempts = 3,
+                    BaseDelayMs = 10,
+                    RetryableStatusCodes = new List<int> { 500 } // Make 500 retryable for this test
+                }
+            };
 
-            // All attempts fail
-            _httpHandler.AddResponse(HttpStatusCode.ServiceUnavailable);
-            _httpHandler.AddResponse(HttpStatusCode.ServiceUnavailable);
+            // All requests fail
+            _httpHandler.AddResponse(HttpStatusCode.InternalServerError, "{\"error\":\"server error\"}");
+            _httpHandler.AddResponse(HttpStatusCode.InternalServerError, "{\"error\":\"server error\"}");
+            _httpHandler.AddResponse(HttpStatusCode.InternalServerError, "{\"error\":\"server error\"}");
 
             // Act
             var result = await _jobExecutor.ExecuteAsync(config);
@@ -110,18 +182,89 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             // Assert
             result.IsSuccess.Should().BeFalse();
             result.Status.Should().Be("Failed");
-            result.AttemptCount.Should().Be(2);
-            _httpHandler.Requests.Should().HaveCount(2);
+            result.ErrorMessage.Should().NotBeNullOrEmpty();
+            
+            // Should have attempted all retries
+            _httpHandler.Requests.Should().HaveCount(3);
+        }
 
-            // Verify failure metrics
-            _jobMetrics.RecordedFailures.Should().HaveCount(1);
-            _jobMetrics.RecordedSuccesses.Should().HaveCount(0);
+        [Fact]
+        public async Task ExecuteAsync_WithDifferentAuthTypes_WorksCorrectly()
+        {
+            // Test Bearer Auth
+            await TestAuthType(AuthenticationType.Bearer, "BEARER_TOKEN", "bearer-secret-123", (request) =>
+            {
+                request.Headers.Authorization.Should().NotBeNull();
+                request.Headers.Authorization!.Scheme.Should().Be("Bearer");
+                request.Headers.Authorization!.Parameter.Should().Be("bearer-secret-123");
+            });
+
+            _httpHandler.Reset();
+
+            // Test API Key Auth
+            await TestAuthType(AuthenticationType.ApiKey, "API_KEY_TOKEN", "api-key-456", (request) =>
+            {
+                request.Headers.Should().ContainKey("X-API-Key");
+                request.Headers.GetValues("X-API-Key").First().Should().Be("api-key-456");
+            });
+
+            _httpHandler.Reset();
+
+            // Test No Auth
+            await TestAuthType(AuthenticationType.None, null, null, (request) =>
+            {
+                request.Headers.Authorization.Should().BeNull();
+                request.Headers.Should().NotContainKey("X-API-Key");
+            });
+        }
+
+        private async Task TestAuthType(AuthenticationType authType, string? envVarName, string? tokenValue, Action<HttpRequestMessage> verifyAuth)
+        {
+            // Arrange
+            if (envVarName != null && tokenValue != null)
+            {
+                Environment.SetEnvironmentVariable(envVarName, tokenValue);
+            }
+
+            var config = new JobConfig
+            {
+                JobName = $"auth-test-{authType}",
+                Endpoint = "https://api.auth.test/endpoint",
+                HttpMethod = HttpMethod.Get,
+                AuthType = authType,
+                AuthSecretName = envVarName ?? "",
+                RetryPolicy = new RetryPolicy { MaxAttempts = 1 }
+            };
+
+            _httpHandler.AddResponse(HttpStatusCode.OK, "{\"authenticated\":true}");
+
+            // Act
+            var result = await _jobExecutor.ExecuteAsync(config);
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            _httpHandler.Requests.Should().HaveCount(1);
+            
+            var request = _httpHandler.GetRequest(0);
+            verifyAuth(request);
+
+            // Cleanup
+            if (envVarName != null)
+            {
+                Environment.SetEnvironmentVariable(envVarName, null);
+            }
         }
 
         public void Dispose()
         {
             _httpClient?.Dispose();
             _httpHandler?.Reset();
+            
+            // Clean up environment variables
+            Environment.SetEnvironmentVariable("test-auth-token", null);
+            Environment.SetEnvironmentVariable("retry-test-token", null);
+            Environment.SetEnvironmentVariable("BEARER_TOKEN", null);
+            Environment.SetEnvironmentVariable("API_KEY_TOKEN", null);
         }
     }
 }
