@@ -4,42 +4,47 @@ using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
 
-var builder = FunctionsApplication.CreateBuilder(args);
-
-builder.ConfigureFunctionsWebApplication();
-
-// Configuration
-builder.Services.Configure<JobSchedulerOptions>(
-    builder.Configuration.GetSection(JobSchedulerOptions.SectionName));
-
-// Validate configuration on startup
-builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
-
-// HttpClient with factory pattern
-builder.Services.AddHttpClient("job-executor", client =>
+internal class Program
 {
-    client.Timeout = TimeSpan.FromMinutes(5);
-    client.DefaultRequestHeaders.Add("User-Agent", "JobScheduler/1.0");
-});
+    private static void Main(string[] args)
+    {
+        var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights()
+        builder.ConfigureFunctionsWebApplication();
 
-    // Register core services with appropriate lifetimes
-    .AddScoped<IJobExecutor, JobExecutor>()
-    .AddSingleton<ISecretManager, EnvironmentSecretManager>()
-    .AddScoped<IJobLogger, JobLogger>()
-    .AddScoped<IJobMetrics, JobMetrics>()
-    .AddSingleton<IJobConfigurationProvider, OptionsJobConfigurationProvider>();
+        // Configuration
+        builder.Services.Configure<JobSchedulerOptions>(
+            builder.Configuration.GetSection(JobSchedulerOptions.SectionName));
 
-builder.Build().Run();
+        // Validate configuration on startup
+        builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
+
+        // HttpClient with factory pattern
+        builder.Services.AddHttpClient("job-executor", client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5);
+            client.DefaultRequestHeaders.Add("User-Agent", "JobScheduler/1.0");
+        });
+
+        builder.Services
+            .AddApplicationInsightsTelemetryWorkerService()
+            .ConfigureFunctionsApplicationInsights()
+
+            // Register core services with appropriate lifetimes
+            .AddScoped<IJobExecutor, JobExecutor>()
+            .AddSingleton<ISecretManager, EnvironmentSecretManager>()
+            .AddScoped<IJobLogger, JobLogger>()
+            .AddScoped<IJobMetrics, JobMetrics>()
+            .AddSingleton<IJobConfigurationProvider, OptionsJobConfigurationProvider>();
+
+        builder.Build().Run();
+    }
+}
 
 // Configuration validation class
 public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
@@ -57,7 +62,7 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
         {
             var validationContext = new ValidationContext(job);
             var validationResults = new List<ValidationResult>();
-            
+
             if (!Validator.TryValidateObject(job, validationContext, validationResults, true))
             {
                 failures.AddRange(validationResults.Select(r => $"Job '{jobName}': {r.ErrorMessage}"));
@@ -75,7 +80,7 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
             }
         }
 
-        return failures.Any() 
+        return failures.Any()
             ? ValidateOptionsResult.Fail(failures)
             : ValidateOptionsResult.Success;
     }
