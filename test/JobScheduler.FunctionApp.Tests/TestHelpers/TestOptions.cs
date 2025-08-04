@@ -24,9 +24,7 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
                 },
                 Metrics = new MetricsOptions
                 {
-                    EnableMetrics = true,
-                    EnableCustomCounters = true,
-                    MetricsFlushIntervalSeconds = 60
+                    EnableMetrics = true
                 }
             });
         }
