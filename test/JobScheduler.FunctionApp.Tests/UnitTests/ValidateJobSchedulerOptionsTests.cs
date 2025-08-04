@@ -1,5 +1,6 @@
 using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -7,7 +8,14 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests;
 
 public class ValidateJobSchedulerOptionsTests
 {
-    private readonly ValidateJobSchedulerOptions _validator = new();
+    private readonly ValidateJobSchedulerOptions _validator;
+
+    public ValidateJobSchedulerOptionsTests()
+    {
+        // Create empty configuration for tests that don't need binding validation
+        var configuration = new ConfigurationBuilder().Build();
+        _validator = new ValidateJobSchedulerOptions(configuration);
+    }
 
     [Fact]
     public void Validate_WithValidConfiguration_ReturnsSuccess()

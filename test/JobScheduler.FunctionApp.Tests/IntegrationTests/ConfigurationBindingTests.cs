@@ -45,38 +45,9 @@ public class ConfigurationBindingTests
 
         var services = new ServiceCollection();
         
-        // Use the same configuration approach as the application
-        services.Configure<JobSchedulerOptions>(options =>
-        {
-            var section = configuration.GetSection("JobScheduler");
-            section.Bind(options);
-            
-            // Manually fix HttpMethod properties that couldn't be bound
-            foreach (var kvp in options.Jobs)
-            {
-                var jobConfig = kvp.Value;
-                if (jobConfig.HttpMethod == null)
-                {
-                    // Try to get the HttpMethod value from configuration
-                    var httpMethodString = section.GetSection($"Jobs:{kvp.Key}:HttpMethod").Value;
-                    if (!string.IsNullOrEmpty(httpMethodString))
-                    {
-                        jobConfig.HttpMethod = httpMethodString.ToUpperInvariant() switch
-                        {
-                            "GET" => HttpMethod.Get,
-                            "POST" => HttpMethod.Post,
-                            "PUT" => HttpMethod.Put,
-                            "DELETE" => HttpMethod.Delete,
-                            "PATCH" => HttpMethod.Patch,
-                            "HEAD" => HttpMethod.Head,
-                            "OPTIONS" => HttpMethod.Options,
-                            "TRACE" => HttpMethod.Trace,
-                            _ => throw new InvalidOperationException($"Unknown HTTP method: {httpMethodString} for job {kvp.Key}")
-                        };
-                    }
-                }
-            }
-        });
+        // Use the same type converter approach as the application
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection("JobScheduler"));
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -101,7 +72,7 @@ public class ConfigurationBindingTests
     }
 
     [Fact]
-    public void JobDefinition_HttpMethodBinding_ShouldThrowForUnknownMethod()
+    public void JobDefinition_HttpMethodBinding_ShouldFailSilentlyForUnknownMethod()
     {
         // Arrange - Test specifically for unknown HTTP method
         var jsonConfig = """
@@ -124,45 +95,17 @@ public class ConfigurationBindingTests
 
         var services = new ServiceCollection();
         
-        // Use the same configuration approach as the application
-        services.Configure<JobSchedulerOptions>(options =>
-        {
-            var section = configuration.GetSection("JobScheduler");
-            section.Bind(options);
-            
-            // Manually fix HttpMethod properties that couldn't be bound
-            foreach (var kvp in options.Jobs)
-            {
-                var jobConfig = kvp.Value;
-                if (jobConfig.HttpMethod == null)
-                {
-                    // Try to get the HttpMethod value from configuration
-                    var httpMethodString = section.GetSection($"Jobs:{kvp.Key}:HttpMethod").Value;
-                    if (!string.IsNullOrEmpty(httpMethodString))
-                    {
-                        jobConfig.HttpMethod = httpMethodString.ToUpperInvariant() switch
-                        {
-                            "GET" => HttpMethod.Get,
-                            "POST" => HttpMethod.Post,
-                            "PUT" => HttpMethod.Put,
-                            "DELETE" => HttpMethod.Delete,
-                            "PATCH" => HttpMethod.Patch,
-                            "HEAD" => HttpMethod.Head,
-                            "OPTIONS" => HttpMethod.Options,
-                            "TRACE" => HttpMethod.Trace,
-                            _ => throw new InvalidOperationException($"Unknown HTTP method: {httpMethodString} for job {kvp.Key}")
-                        };
-                    }
-                }
-            }
-        });
+        // Use the same type converter approach as the application
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection("JobScheduler"));
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Act & Assert - This should throw because of the invalid HTTP method
-        var act = () => serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>().Value;
-
-        act.Should().Throw<InvalidOperationException>()
-           .WithMessage("Unknown HTTP method: INVALID for job test-job");
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>().Value;
+        
+        // Assert - Configuration binding should fail silently for invalid HttpMethod
+        // The job won't be added to the configuration at all
+        options.Jobs.Should().BeEmpty("invalid HttpMethod should cause configuration binding to fail silently");
     }
 }

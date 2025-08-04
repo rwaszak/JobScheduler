@@ -27,38 +27,9 @@ public class ConfigurationBindingTests
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
         
-        // Use the same configuration approach as the application
-        services.Configure<JobSchedulerOptions>(options =>
-        {
-            var section = configuration.GetSection(JobSchedulerOptions.SectionName);
-            section.Bind(options);
-            
-            // Manually fix HttpMethod properties that couldn't be bound
-            foreach (var kvp in options.Jobs)
-            {
-                var jobConfig = kvp.Value;
-                if (jobConfig.HttpMethod == null)
-                {
-                    // Try to get the HttpMethod value from configuration
-                    var httpMethodString = section.GetSection($"Jobs:{kvp.Key}:HttpMethod").Value;
-                    if (!string.IsNullOrEmpty(httpMethodString))
-                    {
-                        jobConfig.HttpMethod = httpMethodString.ToUpperInvariant() switch
-                        {
-                            "GET" => HttpMethod.Get,
-                            "POST" => HttpMethod.Post,
-                            "PUT" => HttpMethod.Put,
-                            "DELETE" => HttpMethod.Delete,
-                            "PATCH" => HttpMethod.Patch,
-                            "HEAD" => HttpMethod.Head,
-                            "OPTIONS" => HttpMethod.Options,
-                            "TRACE" => HttpMethod.Trace,
-                            _ => throw new InvalidOperationException($"Unknown HTTP method: {httpMethodString} for job {kvp.Key}")
-                        };
-                    }
-                }
-            }
-        });
+        // Use the same type converter approach as the application
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection(JobSchedulerOptions.SectionName));
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -69,5 +40,102 @@ public class ConfigurationBindingTests
         options.Jobs.Should().ContainKey("test-job");
         var job = options.Jobs["test-job"];
         job.HttpMethod.Should().Be(HttpMethod.Get);
+    }
+
+    [Fact]
+    public void HttpMethod_ShouldFailSilentlyForInvalidValue_CurrentBehavior()
+    {
+        // Arrange
+        var configurationData = new Dictionary<string, string?>
+        {
+            ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
+            ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = "INVALID"
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configurationData)
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection(JobSchedulerOptions.SectionName));
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>().Value;
+        
+        // Assert - Current behavior: job is silently dropped
+        options.Jobs.Should().BeEmpty("invalid HttpMethod causes configuration binding to fail silently");
+    }
+
+    [Fact]
+    public void HttpMethod_ShouldFailValidationForInvalidValue_WithValidation()
+    {
+        // Arrange
+        var configurationData = new Dictionary<string, string?>
+        {
+            ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
+            ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = "INVALID"
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configurationData)
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection(JobSchedulerOptions.SectionName));
+        
+        // Add validation (same as in the application)
+        services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act & Assert - Should throw validation error when trying to access the options
+        var act = () => serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>().Value;
+        
+        act.Should().Throw<OptionsValidationException>()
+           .WithMessage("*Configuration binding failed*INVALID*");
+    }
+
+    [Theory]
+    [InlineData("GET", "GET")]
+    [InlineData("POST", "POST")]
+    [InlineData("get", "GET")]  // Test case insensitive
+    [InlineData("post", "POST")]
+    [InlineData("PUT", "PUT")]
+    [InlineData("DELETE", "DELETE")]
+    public void HttpMethod_ShouldConvertValidValues(string configValue, string expectedMethod)
+    {
+        // Arrange
+        var configurationData = new Dictionary<string, string?>
+        {
+            ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
+            ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = configValue
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configurationData)
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection(JobSchedulerOptions.SectionName));
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>().Value;
+
+        // Assert
+        var job = options.Jobs["test-job"];
+        job.HttpMethod.Method.Should().Be(expectedMethod);
     }
 }

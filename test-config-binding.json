@@ -1,0 +1,11 @@
+{
+  "JobScheduler": {
+    "Jobs": {
+      "test-job": {
+        "JobName": "test-job",
+        "Endpoint": "https://example.com",
+        "HttpMethod": "INVALID_METHOD"
+      }
+    }
+  }
+}

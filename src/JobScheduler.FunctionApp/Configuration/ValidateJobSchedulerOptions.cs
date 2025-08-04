@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
@@ -6,6 +7,12 @@ namespace JobScheduler.FunctionApp.Configuration;
 
 public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
 {
+    private readonly IConfiguration _configuration;
+
+    public ValidateJobSchedulerOptions(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
     public ValidateOptionsResult Validate(string? name, JobSchedulerOptions options)
     {
         var failures = new List<string>();
@@ -40,6 +47,9 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
         // Validate job name constants match configuration
         ValidateJobNameConstants(options, failures);
 
+        // Validate configuration binding integrity
+        ValidateConfigurationBinding(options, failures);
+
         return failures.Any()
             ? ValidateOptionsResult.Fail(failures)
             : ValidateOptionsResult.Success;
@@ -68,6 +78,54 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
             if (!definedJobNames.Contains(configuredJob))
             {
                 failures.Add($"Job '{configuredJob}' is configured but not defined in JobNames constants. Consider adding it for type safety.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates that all job configurations in appsettings.json successfully bound to JobDefinition objects.
+    /// This detects when jobs are silently dropped due to configuration binding failures (e.g., invalid HttpMethod values).
+    /// </summary>
+    private void ValidateConfigurationBinding(JobSchedulerOptions options, List<string> failures)
+    {
+        var jobsSection = _configuration.GetSection($"{JobSchedulerOptions.SectionName}:Jobs");
+        if (!jobsSection.Exists())
+        {
+            return; // No jobs section in configuration
+        }
+
+        // Get all job names that exist in the configuration
+        var configuredJobNames = jobsSection.GetChildren()
+            .Select(section => section.Key)
+            .ToHashSet();
+
+        // Get all job names that successfully bound to objects
+        var boundJobNames = options.Jobs.Keys.ToHashSet();
+
+        // Find jobs that exist in configuration but failed to bind
+        var failedBindingJobs = configuredJobNames.Except(boundJobNames).ToList();
+
+        foreach (var jobName in failedBindingJobs)
+        {
+            var jobSection = jobsSection.GetSection(jobName);
+            var httpMethod = jobSection["HttpMethod"];
+            
+            if (!string.IsNullOrEmpty(httpMethod))
+            {
+                // Check if this looks like an invalid HttpMethod value
+                var validHttpMethods = new[] { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS" };
+                if (!validHttpMethods.Contains(httpMethod.ToUpperInvariant()))
+                {
+                    failures.Add($"Job '{jobName}': Configuration binding failed. Invalid HttpMethod value '{httpMethod}'. Valid values are: {string.Join(", ", validHttpMethods)}.");
+                }
+                else
+                {
+                    failures.Add($"Job '{jobName}': Configuration binding failed. HttpMethod '{httpMethod}' could not be converted to HttpMethod object.");
+                }
+            }
+            else
+            {
+                failures.Add($"Job '{jobName}': Configuration binding failed for unknown reason. Check all property values and types.");
             }
         }
     }

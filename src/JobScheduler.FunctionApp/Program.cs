@@ -4,11 +4,9 @@ using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System.ComponentModel;
 
 internal class Program
 {
@@ -18,38 +16,12 @@ internal class Program
 
         builder.ConfigureFunctionsWebApplication();
 
-        // Configuration with custom binding for HttpMethod
-        builder.Services.Configure<JobSchedulerOptions>(options =>
-        {
-            var section = builder.Configuration.GetSection(JobSchedulerOptions.SectionName);
-            section.Bind(options);
-            
-            // Manually fix HttpMethod properties that couldn't be bound
-            foreach (var kvp in options.Jobs)
-            {
-                var jobConfig = kvp.Value;
-                if (jobConfig.HttpMethod == null)
-                {
-                    // Try to get the HttpMethod value from configuration
-                    var httpMethodString = section.GetSection($"Jobs:{kvp.Key}:HttpMethod").Value;
-                    if (!string.IsNullOrEmpty(httpMethodString))
-                    {
-                        jobConfig.HttpMethod = httpMethodString.ToUpperInvariant() switch
-                        {
-                            "GET" => HttpMethod.Get,
-                            "POST" => HttpMethod.Post,
-                            "PUT" => HttpMethod.Put,
-                            "DELETE" => HttpMethod.Delete,
-                            "PATCH" => HttpMethod.Patch,
-                            "HEAD" => HttpMethod.Head,
-                            "OPTIONS" => HttpMethod.Options,
-                            "TRACE" => HttpMethod.Trace,
-                            _ => throw new InvalidOperationException($"Unknown HTTP method: {httpMethodString} for job {kvp.Key}")
-                        };
-                    }
-                }
-            }
-        });
+        // Enable HttpMethod string-to-object conversion for configuration binding
+        builder.Services.AddHttpMethodTypeConverter();
+
+        // Configuration
+        builder.Services.Configure<JobSchedulerOptions>(
+            builder.Configuration.GetSection(JobSchedulerOptions.SectionName));
 
         // Validate configuration on startup
         builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();

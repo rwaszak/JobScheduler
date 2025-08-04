@@ -1,5 +1,6 @@
 using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -35,7 +36,8 @@ public class JobNameValidationIntegrationTests
             }
         };
 
-        var validator = new ValidateJobSchedulerOptions();
+        var configuration = new ConfigurationBuilder().Build();
+        var validator = new ValidateJobSchedulerOptions(configuration);
 
         // Act & Assert - Should not throw
         var result = validator.Validate(null, options);
@@ -62,7 +64,8 @@ public class JobNameValidationIntegrationTests
             }
         };
 
-        var validator = new ValidateJobSchedulerOptions();
+        var configuration = new ConfigurationBuilder().Build();
+        var validator = new ValidateJobSchedulerOptions(configuration);
 
         // Act
         var result = validator.Validate(null, options);
@@ -108,7 +111,8 @@ public class JobNameValidationIntegrationTests
             }
         };
 
-        var validator = new ValidateJobSchedulerOptions();
+        var configuration = new ConfigurationBuilder().Build();
+        var validator = new ValidateJobSchedulerOptions(configuration);
 
         // Act
         var result = validator.Validate(null, options);
