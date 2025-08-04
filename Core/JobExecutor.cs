@@ -157,8 +157,10 @@ namespace HelloWorldFunctionApp.Core
                 request.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             }
 
-            _httpClient.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
-            var response = await _httpClient.SendAsync(request, cancellationToken);
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(config.TimeoutSeconds));
+            using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+            var response = await _httpClient.SendAsync(request, combinedCts.Token);
 
             response.EnsureSuccessStatusCode();
 
