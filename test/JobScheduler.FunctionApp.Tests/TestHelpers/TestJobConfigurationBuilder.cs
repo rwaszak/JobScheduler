@@ -64,7 +64,8 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
             {
                 MaxAttempts = maxAttempts,
                 BaseDelayMs = baseDelayMs,
-                BackoffMultiplier = backoffMultiplier
+                BackoffMultiplier = backoffMultiplier,
+                RetryableStatusCodes = new() { 429, 502, 503, 504 } // Keep default retryable status codes
             };
             return this;
         }

@@ -49,7 +49,7 @@ namespace JobScheduler.FunctionApp.Services
 
                 var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{_loggingOptions.DatadogApiKey}";
 
-                using var httpClient = _httpClientFactory.CreateClient("job-logger");
+                var httpClient = _httpClientFactory.CreateClient("job-logger");
                 await httpClient.PostAsync(url, content);
             }
             catch (Exception ex)

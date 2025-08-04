@@ -96,7 +96,7 @@ namespace JobScheduler.FunctionApp.Core
             CancellationToken cancellationToken)
         {
             var attempt = 0;
-            Exception lastException = null;
+            Exception lastException = null!;
 
             while (attempt < config.RetryPolicy.MaxAttempts)
             {
@@ -107,9 +107,16 @@ namespace JobScheduler.FunctionApp.Core
                     var response = await MakeHttpCallAsync(config, authToken, attempt, cancellationToken);
                     return (response, attempt);
                 }
-                catch (HttpRequestException ex) when (ShouldRetry(ex, config.RetryPolicy, attempt))
+                catch (HttpRequestException ex)
                 {
                     lastException = ex;
+
+                    // Check if we should retry this exception
+                    if (!ShouldRetry(ex, config.RetryPolicy, attempt))
+                    {
+                        // Not retryable, break out of the loop
+                        break;
+                    }
 
                     await _jobLogger.LogAsync(LogLevel.Warning, config.JobName,
                         $"Attempt {attempt} failed, retrying...", new
@@ -132,7 +139,7 @@ namespace JobScheduler.FunctionApp.Core
 
         private async Task<object> MakeHttpCallAsync(JobConfig config, string authToken, int attempt, CancellationToken cancellationToken)
         {
-            using var httpClient = _httpClientFactory.CreateClient("job-executor");
+            var httpClient = _httpClientFactory.CreateClient("job-executor");
             using var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod), config.Endpoint);
 
             // Set headers
@@ -163,7 +170,18 @@ namespace JobScheduler.FunctionApp.Core
 
             var response = await httpClient.SendAsync(request, combinedCts.Token);
 
-            response.EnsureSuccessStatusCode();
+            // Check if this is a retryable error status code
+            if (!response.IsSuccessStatusCode)
+            {
+                var statusCode = (int)response.StatusCode;
+                if (config.RetryPolicy.RetryableStatusCodes.Contains(statusCode))
+                {
+                    throw new HttpRequestException($"HTTP {statusCode} {response.StatusCode}: {response.ReasonPhrase}");
+                }
+                
+                // Not retryable, use standard behavior
+                response.EnsureSuccessStatusCode();
+            }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             return JsonSerializer.Deserialize<object>(responseContent);
@@ -173,9 +191,12 @@ namespace JobScheduler.FunctionApp.Core
         {
             if (attempt >= policy.MaxAttempts) return false;
 
-            return ex.Message.Contains("timeout") ||
-                   ex.Message.Contains("connection") ||
-                   policy.RetryableStatusCodes.Any(code => ex.Message.Contains(code.ToString()));
+            // Check for timeout and connection issues
+            if (ex.Message.Contains("timeout") || ex.Message.Contains("connection"))
+                return true;
+
+            // Check for retryable HTTP status codes in the exception message
+            return policy.RetryableStatusCodes.Any(code => ex.Message.Contains($"HTTP {code}"));
         }
 
         private TimeSpan CalculateBackoffDelay(RetryPolicy policy, int attempt)
