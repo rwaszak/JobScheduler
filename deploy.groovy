@@ -34,8 +34,7 @@ def call(Map config) {
 
     withCredentials([
             azureServicePrincipal('jenkins-service-principal-2'),
-            string(credentialsId: 'datadog-api-key', variable: 'DD_API_KEY'),
-            string(credentialsId: 'azure-storage-connection-string-' + config.environment, variable: 'AZURE_STORAGE_CONNECTION_STRING'),
+            string(credentialsId: 'datadog-api-key', variable: 'DD_API_KEY')
     ]) {
         // Azure login
         sh """
