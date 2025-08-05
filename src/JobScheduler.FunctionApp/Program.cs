@@ -20,6 +20,24 @@ internal class Program
         // Add appsettings.json for application configuration
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
+        // Add environment variables to override appsettings values
+        builder.Configuration.AddEnvironmentVariables();
+
+        // Replace environment variable placeholders in configuration
+        builder.Configuration.Sources.Clear();
+        builder.Configuration
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddEnvironmentVariables();
+        
+        // Custom configuration to handle token replacement
+        var configuration = builder.Configuration.Build();
+        var configWithEnvReplace = new ConfigurationBuilder()
+            .AddInMemoryCollection(ReplaceEnvironmentTokens(configuration))
+            .Build();
+        
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddConfiguration(configWithEnvReplace);
+
         // Enable HttpMethod string-to-object conversion for configuration binding
         builder.Services.AddHttpMethodTypeConverter();
 
@@ -46,5 +64,23 @@ internal class Program
             .AddScoped<IJobMetrics, JobMetrics>();
 
         builder.Build().Run();
+    }
+
+    private static IEnumerable<KeyValuePair<string, string?>> ReplaceEnvironmentTokens(IConfiguration configuration)
+    {
+        foreach (var item in configuration.AsEnumerable())
+        {
+            var value = item.Value;
+            if (!string.IsNullOrEmpty(value) && value.StartsWith("#{") && value.EndsWith("}#"))
+            {
+                var envVarName = value.Substring(2, value.Length - 4);
+                var envValue = Environment.GetEnvironmentVariable(envVarName);
+                yield return new KeyValuePair<string, string?>(item.Key, envValue);
+            }
+            else
+            {
+                yield return item;
+            }
+        }
     }
 }
