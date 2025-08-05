@@ -4,6 +4,7 @@ using JobScheduler.FunctionApp.Core.Interfaces;
 using JobScheduler.FunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,9 @@ internal class Program
         var builder = FunctionsApplication.CreateBuilder(args);
 
         builder.ConfigureFunctionsWebApplication();
+
+        // Add local.settings.json as a configuration source for local development
+        builder.Configuration.AddJsonFile("local.settings.json", optional: true, reloadOnChange: true);
 
         // Enable HttpMethod string-to-object conversion for configuration binding
         builder.Services.AddHttpMethodTypeConverter();
