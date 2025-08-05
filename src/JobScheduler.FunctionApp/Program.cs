@@ -23,20 +23,21 @@ internal class Program
         // Add environment variables to override appsettings values
         builder.Configuration.AddEnvironmentVariables();
 
+        // TEMPORARY: Disable token replacement to test if this is causing the issue
         // Replace environment variable placeholders in configuration
         // Note: We'll do this after the builder is created since ConfigurationManager doesn't have Build()
-        var tempConfig = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-        
-        var configWithEnvReplace = new ConfigurationBuilder()
-            .AddInMemoryCollection(ReplaceEnvironmentTokens(tempConfig))
-            .Build();
-        
-        // Clear and add the processed configuration
-        builder.Configuration.Sources.Clear();
-        builder.Configuration.AddConfiguration(configWithEnvReplace);
+        // var tempConfig = new ConfigurationBuilder()
+        //     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        //     .AddEnvironmentVariables()
+        //     .Build();
+        // 
+        // var configWithEnvReplace = new ConfigurationBuilder()
+        //     .AddInMemoryCollection(ReplaceEnvironmentTokens(tempConfig))
+        //     .Build();
+        // 
+        // // Clear and add the processed configuration
+        // builder.Configuration.Sources.Clear();
+        // builder.Configuration.AddConfiguration(configWithEnvReplace);
 
         // Enable HttpMethod string-to-object conversion for configuration binding
         builder.Services.AddHttpMethodTypeConverter();
