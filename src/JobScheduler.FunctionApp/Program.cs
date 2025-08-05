@@ -47,7 +47,8 @@ internal class Program
             builder.Configuration.GetSection(JobSchedulerOptions.SectionName));
 
         // Validate configuration on startup
-        builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
+        // TEMPORARY: Disable validation to test if this is causing 500 errors
+        // builder.Services.AddSingleton<IValidateOptions<JobSchedulerOptions>, ValidateJobSchedulerOptions>();
 
         // Shared HttpClient configuration
         builder.Services.AddHttpClient();

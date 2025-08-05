@@ -109,16 +109,37 @@ namespace JobScheduler.FunctionApp.Functions
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "application/json");
 
-            var healthData = new
+            try 
             {
-                Status = "Healthy",
-                Timestamp = DateTime.UtcNow,
-                Version = "1.0.0",
-                JobCount = _configProvider.GetAllJobConfigs().Count(),
-                Environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "unknown"
-            };
+                var jobCount = _configProvider.GetAllJobConfigs().Count();
+                var healthData = new
+                {
+                    Status = "Healthy",
+                    Timestamp = DateTime.UtcNow,
+                    Version = "1.0.0",
+                    JobCount = jobCount,
+                    Environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "unknown"
+                };
 
-            await response.WriteStringAsync(JsonSerializer.Serialize(healthData, new JsonSerializerOptions { WriteIndented = true }));
+                await response.WriteStringAsync(JsonSerializer.Serialize(healthData, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Health check failed");
+                response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+                response.Headers.Add("Content-Type", "application/json");
+                
+                var errorData = new
+                {
+                    Status = "Unhealthy",
+                    Timestamp = DateTime.UtcNow,
+                    Error = ex.Message,
+                    Environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "unknown"
+                };
+                
+                await response.WriteStringAsync(JsonSerializer.Serialize(errorData, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            
             return response;
         }
     }
