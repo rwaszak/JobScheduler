@@ -27,4 +27,11 @@
     <ProjectReference Include="..\..\src\JobScheduler.FunctionApp\JobScheduler.FunctionApp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="..\..\src\JobScheduler.FunctionApp\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>appsettings.json</Link>
+    </None>
+  </ItemGroup>
+
 </Project>
