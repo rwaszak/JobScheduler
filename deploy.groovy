@@ -4,23 +4,6 @@ def call(Map config) {
     // FOR TESTING: Use existing Functions app first, then switch to per-env later
     def useExistingApp = env.USE_EXISTING_APP?.toBoolean() ?: true
     
-    if (useExistingApp) {
-        // Use your existing manually deployed Functions app for testing
-        def resourceGroup = "continuum_scheduled_jobs"  // From your Azure portal screenshot
-        def functionAppName = "job-scheduler-poc"        // From your Azure portal screenshot
-    } else {
-        // Future: Azure Functions App configuration per environment
-        def resourceGroup = "jobscheduler-functions-${config.environment}-rg"
-        def functionAppName = "jobscheduler-functions-${config.environment}"
-        def appServicePlan = "jobscheduler-functions-${config.environment}-plan"
-        def storageAccount = "jobschedstorage${config.environment}"
-    }
-def call(Map config) {
-    echo "Deploying JobScheduler Functions to ${config.environment} environment"
-
-    // FOR TESTING: Use existing Functions app first, then switch to per-env later
-    def useExistingApp = env.USE_EXISTING_APP?.toBoolean() ?: true
-    
     def resourceGroup
     def functionAppName
     def appServicePlan
@@ -228,4 +211,3 @@ def deployToContainerApps(config, resourceGroup, containerAppName, containerAppE
 }
 
 return this
-}
