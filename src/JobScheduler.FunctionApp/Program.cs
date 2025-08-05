@@ -24,17 +24,17 @@ internal class Program
         builder.Configuration.AddEnvironmentVariables();
 
         // Replace environment variable placeholders in configuration
-        builder.Configuration.Sources.Clear();
-        builder.Configuration
+        // Note: We'll do this after the builder is created since ConfigurationManager doesn't have Build()
+        var tempConfig = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables();
-        
-        // Custom configuration to handle token replacement
-        var configuration = builder.Configuration.Build();
-        var configWithEnvReplace = new ConfigurationBuilder()
-            .AddInMemoryCollection(ReplaceEnvironmentTokens(configuration))
+            .AddEnvironmentVariables()
             .Build();
         
+        var configWithEnvReplace = new ConfigurationBuilder()
+            .AddInMemoryCollection(ReplaceEnvironmentTokens(tempConfig))
+            .Build();
+        
+        // Clear and add the processed configuration
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddConfiguration(configWithEnvReplace);
 
