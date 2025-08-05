@@ -28,13 +28,6 @@ namespace JobScheduler.FunctionApp.Functions
             await ExecuteJobSafely(JobNames.ContainerAppHealth, myTimer);
         }
 
-        // Additional jobs you can easily add
-        [Function(JobNames.DailyBatch)]
-        public async Task DailyBatchProcessor([TimerTrigger("0 0 6 * * *")] TimerInfo myTimer)
-        {
-            await ExecuteJobSafely(JobNames.DailyBatch, myTimer);
-        }
-
         // Generic job execution with error handling
         private async Task ExecuteJobSafely(string jobName, TimerInfo timerInfo)
         {

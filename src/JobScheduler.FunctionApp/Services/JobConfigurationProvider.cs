@@ -50,29 +50,6 @@ namespace JobScheduler.FunctionApp.Services
                 }
             };
 
-            // Add more job configurations as needed
-            configs[JobNames.DailyBatch] = new JobConfig
-            {
-                JobName = JobNames.DailyBatch,
-                Endpoint = Environment.GetEnvironmentVariable("DAILY_BATCH_ENDPOINT") ?? "",
-                HttpMethod = HttpMethod.Post,
-                AuthType = AuthenticationType.Bearer,
-                AuthSecretName = "DAILY_BATCH_TOKEN",
-                TimeoutSeconds = 300,
-                RetryPolicy = new RetryPolicy
-                {
-                    MaxAttempts = 3,
-                    BaseDelayMs = 2000,
-                    BackoffMultiplier = 2.0
-                },
-                Tags = new Dictionary<string, string>
-                {
-                    { "category", "batch-processing" },
-                    { "priority", "high" },
-                    { "team", "platform" }
-                }
-            };
-
             return configs;
         }
     }
