@@ -84,12 +84,12 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             echo "Function App ${functionAppName} does not exist - creating new container-compatible Function App"
             
             # Create a new Premium Function App that supports containers
-            # First create an App Service Plan (Premium)
+            # First create an App Service Plan (Premium V2 for Functions)
             az appservice plan create \\
                 --name ${functionAppName}-plan \\
                 --resource-group ${resourceGroup} \\
                 --location centralus \\
-                --sku EP1 \\
+                --sku P1V2 \\
                 --is-linux
             
             # Create Function App with container support
