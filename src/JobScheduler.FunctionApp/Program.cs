@@ -17,8 +17,8 @@ internal class Program
 
         builder.ConfigureFunctionsWebApplication();
 
-        // Add local.settings.json as a configuration source for local development
-        builder.Configuration.AddJsonFile("local.settings.json", optional: true, reloadOnChange: true);
+        // Add appsettings.json for application configuration (gets deployed to Azure)
+        builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
         // Enable HttpMethod string-to-object conversion for configuration binding
         builder.Services.AddHttpMethodTypeConverter();
