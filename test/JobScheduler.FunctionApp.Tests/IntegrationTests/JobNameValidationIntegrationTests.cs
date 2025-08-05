@@ -130,8 +130,8 @@ public class JobNameValidationIntegrationTests
         var dailyBatch = JobNames.DailyBatch;
 
         // Assert - These tests will fail if constants are accidentally changed
-        containerHealth.Should().Be("container-app-health");
-        dailyBatch.Should().Be("daily-batch");
+        containerHealth.Should().Be("containerAppHealth");
+        dailyBatch.Should().Be("dailyBatch");
     }
 
     [Fact]

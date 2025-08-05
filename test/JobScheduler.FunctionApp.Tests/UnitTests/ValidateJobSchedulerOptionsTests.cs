@@ -28,7 +28,7 @@ public class ValidateJobSchedulerOptionsTests
     {
         // Arrange - Configuration with only one of the required jobs
         using var setup = TestConfigurationHelper.CreateSingleJobConfiguration(
-            jobName: "container-app-health",
+            jobName: JobNames.ContainerAppHealth,
             endpoint: "https://api.example.com/health",
             httpMethod: "GET",
             authType: "none",
@@ -47,18 +47,18 @@ public class ValidateJobSchedulerOptionsTests
         // Arrange - Configuration includes both required jobs plus an unknown job
         var configData = new Dictionary<string, string?>
         {
-            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
-            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "https://api.example.com/health",
-            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
-            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
-            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://api.example.com/health",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
             
-            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
-            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
-            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
-            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
-            ["JobScheduler:Jobs:daily-batch:AuthSecretName"] = "BATCH_TOKEN",
-            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://api.example.com/batch",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "bearer",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthSecretName"] = "BATCH_TOKEN",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "120",
             
             ["JobScheduler:Jobs:unknown-job:JobName"] = "unknown-job",
             ["JobScheduler:Jobs:unknown-job:Endpoint"] = "https://api.example.com/unknown",
@@ -81,18 +81,18 @@ public class ValidateJobSchedulerOptionsTests
         // Arrange - Configuration with invalid endpoint URL for one job, valid for the other
         var configData = new Dictionary<string, string?>
         {
-            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
-            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "not-a-valid-url",
-            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
-            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
-            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "not-a-valid-url",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
             
-            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
-            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
-            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
-            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
-            ["JobScheduler:Jobs:daily-batch:AuthSecretName"] = "BATCH_TOKEN",
-            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://api.example.com/batch",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "bearer",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthSecretName"] = "BATCH_TOKEN",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "120",
         };
 
         using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
@@ -109,18 +109,18 @@ public class ValidateJobSchedulerOptionsTests
         // Arrange - Configuration with bearer auth but missing secret name for one job
         var configData = new Dictionary<string, string?>
         {
-            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
-            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "https://api.example.com/health",
-            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
-            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
-            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://api.example.com/health",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
             
-            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
-            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
-            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
-            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://api.example.com/batch",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "bearer",
             // Missing AuthSecretName
-            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "120",
         };
 
         using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
@@ -137,11 +137,11 @@ public class ValidateJobSchedulerOptionsTests
         // Arrange - Configuration with multiple validation errors
         var configData = new Dictionary<string, string?>
         {
-            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
-            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "invalid-url",
-            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
-            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
-            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "invalid-url",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
             
             ["JobScheduler:Jobs:unknown-job:JobName"] = "unknown-job",
             ["JobScheduler:Jobs:unknown-job:Endpoint"] = "https://api.example.com/unknown",

@@ -19,11 +19,11 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
             var provider = setup.GetJobConfigurationProvider();
 
             // Act
-            var config = provider.GetJobConfig("container-app-health");
+            var config = provider.GetJobConfig(JobNames.ContainerAppHealth);
 
             // Assert
             config.Should().NotBeNull();
-            config.JobName.Should().Be("container-app-health");
+            config.JobName.Should().Be(JobNames.ContainerAppHealth);
             config.Endpoint.Should().Be("https://test-api.example.com/health");
             config.HttpMethod.Should().Be(HttpMethod.Get);
             config.AuthType.Should().Be(AuthenticationType.None);
@@ -55,8 +55,8 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
 
             // Assert
             configs.Should().HaveCount(2);
-            configs.Should().Contain(c => c.JobName == "container-app-health");
-            configs.Should().Contain(c => c.JobName == "daily-batch");
+            configs.Should().Contain(c => c.JobName == JobNames.ContainerAppHealth);
+            configs.Should().Contain(c => c.JobName == JobNames.DailyBatch);
         }
 
         [Fact]
@@ -67,7 +67,7 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
             var provider = setup.GetJobConfigurationProvider();
 
             // Act
-            var config = provider.GetJobConfig("container-app-health");
+            var config = provider.GetJobConfig(JobNames.ContainerAppHealth);
 
             // Assert
             config.RetryPolicy.Should().NotBeNull();

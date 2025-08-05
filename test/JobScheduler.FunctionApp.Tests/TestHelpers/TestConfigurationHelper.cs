@@ -20,18 +20,18 @@ public static class TestConfigurationHelper
     {
         var configData = new Dictionary<string, string?>
         {
-            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
-            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "https://test-api.example.com/health",
-            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
-            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
-            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://test-api.example.com/health",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
             
-            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
-            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://test-api.example.com/batch-process",
-            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
-            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
-            ["JobScheduler:Jobs:daily-batch:AuthSecretName"] = "DAILY_BATCH_TOKEN",
-            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://test-api.example.com/batch-process",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "bearer",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthSecretName"] = "DAILY_BATCH_TOKEN",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "120",
         };
 
         return CreateConfiguration(configData);
@@ -41,7 +41,7 @@ public static class TestConfigurationHelper
     /// Creates configuration with a single job for simpler tests
     /// </summary>
     public static ConfigurationSetup CreateSingleJobConfiguration(
-        string jobName = "test-job",
+        string? jobName = null,
         string endpoint = "https://test-api.example.com/test",
         string httpMethod = "GET",
         string authType = "none",
@@ -49,6 +49,9 @@ public static class TestConfigurationHelper
         string? authSecretName = null,
         string? requestBody = null)
     {
+        // Use ContainerAppHealth as default if no job name specified
+        jobName ??= JobNames.ContainerAppHealth;
+        
         var configData = new Dictionary<string, string?>
         {
             [$"JobScheduler:Jobs:{jobName}:JobName"] = jobName,

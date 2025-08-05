@@ -201,7 +201,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             var testLogger = new TestLoggerProvider<ScheduledJobs>();
 
             var jobConfig = TestJobConfigurationBuilder.Default()
-                .WithJobName("container-app-health")
+                .WithJobName(JobNames.ContainerAppHealth)
                 .WithAuthType(AuthenticationType.None)
                 .Build();
 
@@ -214,7 +214,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             };
 
             mockConfigProvider
-                .Setup(p => p.GetJobConfig("container-app-health"))
+                .Setup(p => p.GetJobConfig(JobNames.ContainerAppHealth))
                 .Returns(jobConfig);
 
             mockJobExecutor
@@ -232,12 +232,12 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             await scheduledJobs.ContainerAppHealthCheck(timerInfo);
 
             // Assert
-            mockConfigProvider.Verify(p => p.GetJobConfig("container-app-health"), Times.Once);
+            mockConfigProvider.Verify(p => p.GetJobConfig(JobNames.ContainerAppHealth), Times.Once);
             mockJobExecutor.Verify(e => e.ExecuteAsync(It.IsAny<JobConfig>(), It.IsAny<CancellationToken>()), Times.Once);
 
             testLogger.Logs.Should().HaveCount(2);
-            testLogger.Logs[0].Message.Should().Contain("Starting scheduled job: container-app-health");
-            testLogger.Logs[1].Message.Should().Contain("Job container-app-health completed successfully");
+            testLogger.Logs[0].Message.Should().Contain($"Starting scheduled job: {JobNames.ContainerAppHealth}");
+            testLogger.Logs[1].Message.Should().Contain($"Job {JobNames.ContainerAppHealth} completed successfully");
         }
 
         [Fact]
@@ -249,7 +249,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             var testLogger = new TestLoggerProvider<ScheduledJobs>();
 
             var jobConfig = TestJobConfigurationBuilder.Default()
-                .WithJobName("container-app-health")
+                .WithJobName(JobNames.ContainerAppHealth)
                 .WithAuthType(AuthenticationType.None)
                 .Build();
 
@@ -262,7 +262,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             };
 
             mockConfigProvider
-                .Setup(p => p.GetJobConfig("container-app-health"))
+                .Setup(p => p.GetJobConfig(JobNames.ContainerAppHealth))
                 .Returns(jobConfig);
 
             mockJobExecutor
@@ -282,7 +282,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             // Assert
             testLogger.Logs.Should().HaveCount(2);
             testLogger.Logs[1].LogLevel.Should().Be(LogLevel.Error);
-            testLogger.Logs[1].Message.Should().Contain("Job container-app-health failed: Network timeout");
+            testLogger.Logs[1].Message.Should().Contain($"Job {JobNames.ContainerAppHealth} failed: Network timeout");
         }
 
         [Fact]
@@ -294,7 +294,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             var testLogger = new TestLoggerProvider<ScheduledJobs>();
 
             mockConfigProvider
-                .Setup(p => p.GetJobConfig("container-app-health"))
+                .Setup(p => p.GetJobConfig(JobNames.ContainerAppHealth))
                 .Throws(new ArgumentException("Job not found"));
 
             var scheduledJobs = new ScheduledJobs(
@@ -310,7 +310,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             // Assert
             testLogger.Logs.Should().HaveCount(2);
             testLogger.Logs[1].LogLevel.Should().Be(LogLevel.Error);
-            testLogger.Logs[1].Message.Should().Contain("Unexpected error in job container-app-health");
+            testLogger.Logs[1].Message.Should().Contain($"Unexpected error in job {JobNames.ContainerAppHealth}");
             testLogger.Logs[1].Exception.Should().BeOfType<ArgumentException>();
         }
 

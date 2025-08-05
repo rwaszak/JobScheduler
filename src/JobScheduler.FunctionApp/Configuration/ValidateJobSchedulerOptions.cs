@@ -42,6 +42,9 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
             {
                 failures.Add($"Job '{jobName}': AuthSecretName is required when AuthType is 'bearer'.");
             }
+
+            // Validate Azure-friendly naming conventions
+            ValidateJobNaming(jobName, job, failures);
         }
 
         // Validate job name constants match configuration
@@ -137,5 +140,54 @@ public class ValidateJobSchedulerOptions : IValidateOptions<JobSchedulerOptions>
             .Where(f => f.IsLiteral && f.FieldType == typeof(string))
             .Select(f => (string)f.GetValue(null)!)
             .ToHashSet();
+    }
+
+    /// <summary>
+    /// Validates that job names follow Azure-friendly naming conventions.
+    /// Azure services often have issues with hyphens/dashes in resource identifiers.
+    /// </summary>
+    private static void ValidateJobNaming(string jobName, JobDefinition job, List<string> failures)
+    {
+        // Azure-friendly naming: alphanumeric and camelCase preferred
+        if (jobName.Contains('-') || jobName.Contains('_'))
+        {
+            failures.Add($"Job '{jobName}': Job names should use camelCase without hyphens or underscores for Azure compatibility. Consider renaming to '{ConvertToAzureFriendlyName(jobName)}'.");
+        }
+
+        // Ensure JobName property matches the configuration key
+        if (job.JobName != jobName)
+        {
+            failures.Add($"Job '{jobName}': JobName property '{job.JobName}' must match the configuration key '{jobName}'.");
+        }
+
+        // Additional Azure naming validations
+        if (jobName.Length > 63)
+        {
+            failures.Add($"Job '{jobName}': Job name exceeds 63 characters, which may cause issues with Azure resources.");
+        }
+
+        if (!char.IsLetter(jobName[0]))
+        {
+            failures.Add($"Job '{jobName}': Job name must start with a letter for Azure compatibility.");
+        }
+    }
+
+    /// <summary>
+    /// Converts a job name to Azure-friendly camelCase format.
+    /// </summary>
+    private static string ConvertToAzureFriendlyName(string jobName)
+    {
+        var parts = jobName.Split('-', '_', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return jobName;
+        
+        var result = parts[0].ToLowerInvariant();
+        for (int i = 1; i < parts.Length; i++)
+        {
+            if (parts[i].Length > 0)
+            {
+                result += char.ToUpperInvariant(parts[i][0]) + parts[i][1..].ToLowerInvariant();
+            }
+        }
+        return result;
     }
 }

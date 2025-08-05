@@ -18,9 +18,9 @@ namespace JobScheduler.FunctionApp.Configuration;
 /// </summary>
 public static class JobNames
 {
-    public const string ContainerAppHealth = "container-app-health";
-    public const string DailyBatch = "daily-batch";
+    public const string ContainerAppHealth = "containerAppHealth";
+    public const string DailyBatch = "dailyBatch";
     
     // TODO: Add new job names here when adding new scheduled functions
-    // Remember to also add the corresponding configuration in local.settings.json
+    // Remember to also add the corresponding configuration in appsettings.json
 }
