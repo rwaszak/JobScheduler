@@ -228,3 +228,4 @@ def deployToContainerApps(config, resourceGroup, containerAppName, containerAppE
 }
 
 return this
+}
