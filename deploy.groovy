@@ -12,8 +12,8 @@ def call(Map config) {
     if (useExistingApp) {
         // Use your existing manually deployed Functions app for testing
         resourceGroup = "continuum_scheduled_jobs"  // From your Azure portal screenshot
-        functionAppName = "job-scheduler-poc"        // From your Azure portal screenshot
-        echo "TESTING MODE: Deploying to existing Functions app: ${functionAppName}"
+        functionAppName = "job-scheduler-poc-container"  // NEW: Container-compatible test app
+        echo "TESTING MODE: Deploying to container-compatible Functions app: ${functionAppName}"
     } else {
         // Future: Azure Functions App configuration per environment
         resourceGroup = "jobscheduler-functions-${config.environment}-rg"
@@ -62,15 +62,43 @@ def call(Map config) {
 }
 
 def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
-    echo "TESTING: Updating existing Azure Functions app: ${functionAppName}"
+    echo "TESTING: Creating/updating container-compatible Azure Functions app: ${functionAppName}"
     
     sh """
-        # Update the existing Function App with new container image
-        az functionapp config container set \\
-            --name ${functionAppName} \\
-            --resource-group ${resourceGroup} \\
-            --docker-custom-image-name ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion} \\
-            --docker-registry-server-url https://${env.DOCKER_REGISTRY_NAME}.azurecr.io
+        # Check if the Function App exists
+        if az functionapp show --name ${functionAppName} --resource-group ${resourceGroup} &>/dev/null; then
+            echo "Function App ${functionAppName} exists - updating container"
+            
+            # Update the existing Function App with new container image
+            az functionapp config container set \\
+                --name ${functionAppName} \\
+                --resource-group ${resourceGroup} \\
+                --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion} \\
+                --registry-server https://${env.DOCKER_REGISTRY_NAME}.azurecr.io
+        else
+            echo "Function App ${functionAppName} does not exist - creating new container-compatible Function App"
+            
+            # Create a new Premium Function App that supports containers
+            # First create an App Service Plan (Premium)
+            az appservice plan create \\
+                --name ${functionAppName}-plan \\
+                --resource-group ${resourceGroup} \\
+                --location centralus \\
+                --sku EP1 \\
+                --is-linux
+            
+            # Create Function App with container support
+            az functionapp create \\
+                --name ${functionAppName} \\
+                --resource-group ${resourceGroup} \\
+                --plan ${functionAppName}-plan \\
+                --storage-account jobschedulerteststorage \\
+                --runtime dotnet-isolated \\
+                --runtime-version 8 \\
+                --functions-version 4 \\
+                --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion} \\
+                --registry-server https://${env.DOCKER_REGISTRY_NAME}.azurecr.io
+        fi
 
         # Update app settings (keeping existing environment variables)
         az functionapp config appsettings set \\
@@ -80,12 +108,14 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
                 DD_VERSION="${config.buildVersion}" \\
                 LAST_JENKINS_DEPLOY="\$(date)" \\
-                JENKINS_BUILD_NUMBER="${config.buildNumber}"
+                JENKINS_BUILD_NUMBER="${config.buildNumber}" \\
+                FUNCTIONS_WORKER_RUNTIME="dotnet-isolated" \\
+                WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
 
         # Restart the function app to pick up new container
         az functionapp restart --name ${functionAppName} --resource-group ${resourceGroup}
 
-        echo "TESTING: Function App updated successfully: https://${functionAppName}.azurewebsites.net"
+        echo "TESTING: Function App ready: https://${functionAppName}.azurewebsites.net"
         echo "You can test the deployment at:"
         echo "  Health: https://${functionAppName}.azurewebsites.net/api/health"
         echo "  Jobs:   https://${functionAppName}.azurewebsites.net/api/jobs"
