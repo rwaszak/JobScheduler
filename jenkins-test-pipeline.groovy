@@ -110,10 +110,10 @@ pipeline {
                         echo "Testing endpoints..."
                         
                         # Test health endpoint
-                        curl -f https://job-scheduler-poc.azurewebsites.net/api/health || echo "Health endpoint failed"
+                        curl -f https://job-scheduler-poc-container.azurewebsites.net/api/health || echo "Health endpoint failed"
                         
                         # Test jobs endpoint  
-                        curl -f https://job-scheduler-poc.azurewebsites.net/api/jobs || echo "Jobs endpoint failed"
+                        curl -f https://job-scheduler-poc-container.azurewebsites.net/api/jobs || echo "Jobs endpoint failed"
                         
                         echo "Deployment test completed!"
                     """
@@ -140,8 +140,8 @@ pipeline {
                 Triggered by: ${buildUser}
                 
                 Test URLs:
-                - Health: https://job-scheduler-poc.azurewebsites.net/api/health
-                - Jobs: https://job-scheduler-poc.azurewebsites.net/api/jobs
+                - Health: https://job-scheduler-poc-container.azurewebsites.net/api/health
+                - Jobs: https://job-scheduler-poc-container.azurewebsites.net/api/jobs
                 ===========================================
                 """
             }
