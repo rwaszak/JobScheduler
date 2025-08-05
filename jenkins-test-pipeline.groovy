@@ -36,7 +36,7 @@ pipeline {
 
         stage('Build Docker Image') {
             when {
-                not { params.SKIP_BUILD }
+                not { params.SKIP_BUILD == true }
             }
             steps {
                 script {
@@ -57,7 +57,7 @@ pipeline {
 
         stage('Push to Registry') {
             when {
-                not { params.SKIP_BUILD }
+                not { params.SKIP_BUILD == true }
             }
             steps {
                 withCredentials([azureServicePrincipal('jenkins-service-principal-2')]) {
