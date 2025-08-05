@@ -161,6 +161,12 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         # Restart the function app to pick up new container
         az functionapp restart --name ${functionAppName} --resource-group ${resourceGroup}
 
+        # Force sync function triggers to refresh function metadata and clear portal cache
+        echo "Syncing function triggers to refresh Azure Portal function metadata..."
+        SUBSCRIPTION_ID=\$(az account show --query id -o tsv)
+        az rest --method post --url "https://management.azure.com/subscriptions/\$SUBSCRIPTION_ID/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/syncfunctiontriggers?api-version=2016-08-01"
+        echo "Function metadata sync completed - Portal should now reflect current functions"
+
         echo "TESTING: Function App ready: https://${functionAppName}.azurewebsites.net"
         echo "You can test the deployment at:"
         echo "  Health: https://${functionAppName}.azurewebsites.net/api/health"
