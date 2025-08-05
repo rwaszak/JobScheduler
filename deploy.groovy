@@ -83,6 +83,15 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         else
             echo "Function App ${functionAppName} does not exist - creating new container-compatible Function App"
             
+            # Create storage account if it doesn't exist (required for Function Apps)
+            az storage account create \\
+                --name jobschedulerteststorage \\
+                --resource-group ${resourceGroup} \\
+                --location centralus \\
+                --sku Standard_LRS \\
+                --kind StorageV2 \\
+                --allow-blob-public-access false || echo "Storage account might already exist, continuing..."
+            
             # Create a new Premium Function App that supports containers
             # First create an App Service Plan (Premium V2 for Functions)
             az appservice plan create \\
