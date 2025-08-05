@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+
+# Test results
+TestResults/
+*.trx
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Packages
+packages/
+*.nupkg
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Exclude everything except the published output
+!src/JobScheduler.FunctionApp/bin/Release/net8.0/publish/
