@@ -1,26 +1,22 @@
 using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
-using JobScheduler.FunctionApp.Services;
+using JobScheduler.FunctionApp.Tests.TestHelpers;
 using Xunit;
 
 namespace JobScheduler.FunctionApp.Tests.UnitTests
 {
-    public class JobConfigurationProviderTests : IDisposable
+    /// <summary>
+    /// Tests for the OptionsJobConfigurationProvider using appsettings.json-style configuration.
+    /// This replaces the old environment variable approach with the runtime configuration approach.
+    /// </summary>
+    public class JobConfigurationProviderTests
     {
-        public JobConfigurationProviderTests()
-        {
-            // Clear environment variables before each test
-            Environment.SetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT", null);
-            Environment.SetEnvironmentVariable("DAILY_BATCH_ENDPOINT", null);
-            Environment.SetEnvironmentVariable("DAILY_BATCH_TOKEN", null);
-        }
-
         [Fact]
         public void GetJobConfig_ExistingJob_ReturnsConfiguration()
         {
             // Arrange
-            Environment.SetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT", "https://test.api.com/health");
-            var provider = new JobConfigurationProvider();
+            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            var provider = setup.GetJobConfigurationProvider();
 
             // Act
             var config = provider.GetJobConfig("container-app-health");
@@ -28,16 +24,18 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
             // Assert
             config.Should().NotBeNull();
             config.JobName.Should().Be("container-app-health");
-            config.Endpoint.Should().Be("https://test.api.com/health");
+            config.Endpoint.Should().Be("https://test-api.example.com/health");
             config.HttpMethod.Should().Be(HttpMethod.Get);
             config.AuthType.Should().Be(AuthenticationType.None);
+            config.TimeoutSeconds.Should().Be(30);
         }
 
         [Fact]
         public void GetJobConfig_NonexistentJob_ThrowsArgumentException()
         {
             // Arrange
-            var provider = new JobConfigurationProvider();
+            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            var provider = setup.GetJobConfigurationProvider();
 
             // Act & Assert
             var action = () => provider.GetJobConfig("nonexistent-job");
@@ -49,9 +47,8 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
         public void GetAllJobConfigs_ReturnsAllConfigurations()
         {
             // Arrange
-            Environment.SetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT", "https://test.api.com/health");
-            Environment.SetEnvironmentVariable("DAILY_BATCH_ENDPOINT", "https://test.api.com/batch");
-            var provider = new JobConfigurationProvider();
+            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            var provider = setup.GetJobConfigurationProvider();
 
             // Act
             var configs = provider.GetAllJobConfigs().ToList();
@@ -63,44 +60,22 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
         }
 
         [Fact]
-        public void LoadJobConfigurationsFromEnvironment_WithMissingEndpoint_UsesEmptyString()
+        public void JobConfiguration_HasCorrectDefaultRetryPolicy()
         {
             // Arrange
-            Environment.SetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT", null);
-            var provider = new JobConfigurationProvider();
+            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            var provider = setup.GetJobConfigurationProvider();
 
             // Act
             var config = provider.GetJobConfig("container-app-health");
 
             // Assert
-            config.Endpoint.Should().Be("");
-        }
-
-        [Fact]
-        public void JobConfiguration_HasCorrectTags()
-        {
-            // Arrange
-            Environment.SetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT", "https://test.api.com/health");
-            var provider = new JobConfigurationProvider();
-
-            // Act
-            var config = provider.GetJobConfig("container-app-health");
-
-            // Assert
-            config.Tags.Should().ContainKey("category");
-            config.Tags.Should().ContainKey("priority");
-            config.Tags.Should().ContainKey("team");
-            config.Tags["category"].Should().Be("health-check");
-            config.Tags["priority"].Should().Be("low");
-            config.Tags["team"].Should().Be("platform");
-        }
-
-        public void Dispose()
-        {
-            // Clean up environment variables after each test
-            Environment.SetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT", null);
-            Environment.SetEnvironmentVariable("DAILY_BATCH_ENDPOINT", null);
-            Environment.SetEnvironmentVariable("DAILY_BATCH_TOKEN", null);
+            config.RetryPolicy.Should().NotBeNull();
+            config.RetryPolicy.MaxAttempts.Should().Be(3);
+            config.RetryPolicy.BaseDelayMs.Should().Be(1000);
+            config.RetryPolicy.BackoffMultiplier.Should().Be(2.0);
+            config.RetryPolicy.MaxDelayMs.Should().Be(30000);
+            config.RetryPolicy.RetryableStatusCodes.Should().Contain(new[] { 429, 502, 503, 504 });
         }
     }
 }

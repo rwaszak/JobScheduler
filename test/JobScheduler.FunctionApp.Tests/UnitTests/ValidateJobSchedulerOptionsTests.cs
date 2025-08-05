@@ -1,81 +1,42 @@
 using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
-using Microsoft.Extensions.Configuration;
+using JobScheduler.FunctionApp.Tests.TestHelpers;
 using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace JobScheduler.FunctionApp.Tests.UnitTests;
 
+/// <summary>
+/// Tests for JobScheduler options validation using the same configuration approach as runtime.
+/// These tests verify that validation works correctly with the appsettings.json configuration.
+/// </summary>
 public class ValidateJobSchedulerOptionsTests
 {
-    private readonly ValidateJobSchedulerOptions _validator;
-
-    public ValidateJobSchedulerOptionsTests()
-    {
-        // Create empty configuration for tests that don't need binding validation
-        var configuration = new ConfigurationBuilder().Build();
-        _validator = new ValidateJobSchedulerOptions(configuration);
-    }
-
     [Fact]
     public void Validate_WithValidConfiguration_ReturnsSuccess()
     {
-        // Arrange - Valid configuration with all required job names
-        var options = new JobSchedulerOptions
-        {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/health",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                },
-                [JobNames.DailyBatch] = new JobDefinition
-                {
-                    JobName = JobNames.DailyBatch,
-                    Endpoint = "https://api.example.com/batch",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "BATCH_TOKEN",
-                    TimeoutSeconds = 120
-                }
-            }
-        };
+        // Arrange - Use the standard test configuration which includes both required jobs
+        using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+        var result = setup.ValidateConfiguration();
 
-        // Act
-        var result = _validator.Validate(null, options);
-
-        // Assert
+        // Act & Assert - Default configuration should pass validation
         result.Should().Be(ValidateOptionsResult.Success);
     }
 
     [Fact]
     public void Validate_WithMissingJobConstant_ReturnsFailure()
     {
-        // Arrange - Missing one of the required job constants
-        var options = new JobSchedulerOptions
-        {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/health",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                }
-                // Missing JobNames.DailyBatch
-            }
-        };
+        // Arrange - Configuration with only one of the required jobs
+        using var setup = TestConfigurationHelper.CreateSingleJobConfiguration(
+            jobName: "container-app-health",
+            endpoint: "https://api.example.com/health",
+            httpMethod: "GET",
+            authType: "none",
+            timeoutSeconds: 30);
 
-        // Act
-        var result = _validator.Validate(null, options);
+        var result = setup.ValidateConfiguration();
 
-        // Assert
+        // Act & Assert
         result.Failed.Should().BeTrue();
         result.Failures.Should().Contain($"Job '{JobNames.DailyBatch}' is defined in JobNames constants but missing from configuration.");
     }
@@ -83,43 +44,33 @@ public class ValidateJobSchedulerOptionsTests
     [Fact]
     public void Validate_WithExtraConfiguredJob_ReturnsFailure()
     {
-        // Arrange - Configuration has a job that doesn't have a constant
-        var options = new JobSchedulerOptions
+        // Arrange - Configuration includes both required jobs plus an unknown job
+        var configData = new Dictionary<string, string?>
         {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/health",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                },
-                [JobNames.DailyBatch] = new JobDefinition
-                {
-                    JobName = JobNames.DailyBatch,
-                    Endpoint = "https://api.example.com/batch",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "BATCH_TOKEN",
-                    TimeoutSeconds = 120
-                },
-                ["unknown-job"] = new JobDefinition
-                {
-                    JobName = "unknown-job",
-                    Endpoint = "https://api.example.com/unknown",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                }
-            }
+            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
+            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "https://api.example.com/health",
+            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
+            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            
+            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
+            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
+            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
+            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
+            ["JobScheduler:Jobs:daily-batch:AuthSecretName"] = "BATCH_TOKEN",
+            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
+            
+            ["JobScheduler:Jobs:unknown-job:JobName"] = "unknown-job",
+            ["JobScheduler:Jobs:unknown-job:Endpoint"] = "https://api.example.com/unknown",
+            ["JobScheduler:Jobs:unknown-job:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:unknown-job:AuthType"] = "none",
+            ["JobScheduler:Jobs:unknown-job:TimeoutSeconds"] = "30",
         };
 
-        // Act
-        var result = _validator.Validate(null, options);
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
 
-        // Assert
+        // Act & Assert
         result.Failed.Should().BeTrue();
         result.Failures.Should().Contain("Job 'unknown-job' is configured but not defined in JobNames constants. Consider adding it for type safety.");
     }
@@ -127,35 +78,27 @@ public class ValidateJobSchedulerOptionsTests
     [Fact]
     public void Validate_WithInvalidEndpoint_ReturnsFailure()
     {
-        // Arrange - Invalid endpoint URL
-        var options = new JobSchedulerOptions
+        // Arrange - Configuration with invalid endpoint URL for one job, valid for the other
+        var configData = new Dictionary<string, string?>
         {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "not-a-valid-url",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                },
-                [JobNames.DailyBatch] = new JobDefinition
-                {
-                    JobName = JobNames.DailyBatch,
-                    Endpoint = "https://api.example.com/batch",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "BATCH_TOKEN",
-                    TimeoutSeconds = 120
-                }
-            }
+            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
+            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "not-a-valid-url",
+            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
+            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            
+            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
+            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
+            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
+            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
+            ["JobScheduler:Jobs:daily-batch:AuthSecretName"] = "BATCH_TOKEN",
+            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
         };
 
-        // Act
-        var result = _validator.Validate(null, options);
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
 
-        // Assert
+        // Act & Assert
         result.Failed.Should().BeTrue();
         result.Failures.Should().Contain($"Job '{JobNames.ContainerAppHealth}': Invalid endpoint URL format.");
     }
@@ -163,35 +106,27 @@ public class ValidateJobSchedulerOptionsTests
     [Fact]
     public void Validate_WithBearerAuthButMissingSecretName_ReturnsFailure()
     {
-        // Arrange - Bearer auth without secret name
-        var options = new JobSchedulerOptions
+        // Arrange - Configuration with bearer auth but missing secret name for one job
+        var configData = new Dictionary<string, string?>
         {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/health",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                },
-                [JobNames.DailyBatch] = new JobDefinition
-                {
-                    JobName = JobNames.DailyBatch,
-                    Endpoint = "https://api.example.com/batch",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "", // Missing secret name
-                    TimeoutSeconds = 120
-                }
-            }
+            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
+            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "https://api.example.com/health",
+            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
+            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            
+            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
+            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
+            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
+            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
+            // Missing AuthSecretName
+            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
         };
 
-        // Act
-        var result = _validator.Validate(null, options);
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
 
-        // Assert
+        // Act & Assert
         result.Failed.Should().BeTrue();
         result.Failures.Should().Contain($"Job '{JobNames.DailyBatch}': AuthSecretName is required when AuthType is 'bearer'.");
     }
@@ -199,41 +134,45 @@ public class ValidateJobSchedulerOptionsTests
     [Fact]
     public void Validate_WithMultipleErrors_ReturnsAllFailures()
     {
-        // Arrange - Multiple validation errors
-        var options = new JobSchedulerOptions
+        // Arrange - Configuration with multiple validation errors
+        var configData = new Dictionary<string, string?>
         {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "invalid-url",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                },
-                ["unknown-job"] = new JobDefinition
-                {
-                    JobName = "unknown-job",
-                    Endpoint = "https://api.example.com/unknown",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "", // Missing secret name
-                    TimeoutSeconds = 30
-                }
-                // Missing JobNames.DailyBatch
-            }
+            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
+            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "invalid-url",
+            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
+            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            
+            ["JobScheduler:Jobs:unknown-job:JobName"] = "unknown-job",
+            ["JobScheduler:Jobs:unknown-job:Endpoint"] = "https://api.example.com/unknown",
+            ["JobScheduler:Jobs:unknown-job:HttpMethod"] = "POST",
+            ["JobScheduler:Jobs:unknown-job:AuthType"] = "bearer",
+            // Missing AuthSecretName for bearer auth
+            ["JobScheduler:Jobs:unknown-job:TimeoutSeconds"] = "30",
+            // Missing daily-batch job entirely
         };
 
-        // Act
-        var result = _validator.Validate(null, options);
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
 
-        // Assert
+        // Act & Assert
         result.Failed.Should().BeTrue();
         result.Failures.Should().HaveCountGreaterThan(1);
         result.Failures.Should().Contain($"Job '{JobNames.ContainerAppHealth}': Invalid endpoint URL format.");
         result.Failures.Should().Contain($"Job '{JobNames.DailyBatch}' is defined in JobNames constants but missing from configuration.");
         result.Failures.Should().Contain("Job 'unknown-job' is configured but not defined in JobNames constants. Consider adding it for type safety.");
         result.Failures.Should().Contain("Job 'unknown-job': AuthSecretName is required when AuthType is 'bearer'.");
+    }
+
+    [Fact]
+    public void Validate_WithEmptyConfiguration_ReturnsFailure()
+    {
+        // Arrange - No jobs configured at all
+        using var setup = TestConfigurationHelper.CreateEmptyConfiguration();
+        var result = setup.ValidateConfiguration();
+
+        // Act & Assert
+        result.Failed.Should().BeTrue();
+        result.Failures.Should().Contain("At least one job must be configured.");
     }
 }
