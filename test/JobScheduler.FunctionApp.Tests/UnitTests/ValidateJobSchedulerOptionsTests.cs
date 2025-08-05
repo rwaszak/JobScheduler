@@ -175,4 +175,113 @@ public class ValidateJobSchedulerOptionsTests
         result.Failed.Should().BeTrue();
         result.Failures.Should().Contain("At least one job must be configured.");
     }
+
+    [Fact]
+    public void Validate_WithKebabCaseJobNames_ReturnsFailure()
+    {
+        // Arrange - Configuration with kebab-case (hyphenated) job names that should be rejected for Azure compatibility
+        var configData = new Dictionary<string, string?>
+        {
+            // Use kebab-case names that should fail validation
+            ["JobScheduler:Jobs:container-app-health:JobName"] = "container-app-health",
+            ["JobScheduler:Jobs:container-app-health:Endpoint"] = "https://api.example.com/health",
+            ["JobScheduler:Jobs:container-app-health:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:container-app-health:AuthType"] = "none",
+            ["JobScheduler:Jobs:container-app-health:TimeoutSeconds"] = "30",
+            
+            ["JobScheduler:Jobs:daily-batch:JobName"] = "daily-batch",
+            ["JobScheduler:Jobs:daily-batch:Endpoint"] = "https://api.example.com/batch",
+            ["JobScheduler:Jobs:daily-batch:HttpMethod"] = "POST",
+            ["JobScheduler:Jobs:daily-batch:AuthType"] = "bearer",
+            ["JobScheduler:Jobs:daily-batch:AuthSecretName"] = "BATCH_TOKEN",
+            ["JobScheduler:Jobs:daily-batch:TimeoutSeconds"] = "120",
+        };
+
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
+
+        // Act & Assert - Should fail because of kebab-case naming
+        result.Failed.Should().BeTrue();
+        result.Failures.Should().Contain("Job 'container-app-health': Job names should use camelCase without hyphens or underscores for Azure compatibility. Consider renaming to 'containerAppHealth'.");
+        result.Failures.Should().Contain("Job 'daily-batch': Job names should use camelCase without hyphens or underscores for Azure compatibility. Consider renaming to 'dailyBatch'.");
+    }
+
+    [Fact]
+    public void Validate_WithSnakeCaseJobNames_ReturnsFailure()
+    {
+        // Arrange - Configuration with snake_case job names that should be rejected for Azure compatibility
+        var configData = new Dictionary<string, string?>
+        {
+            // Use a simple snake_case name that should fail validation
+            ["JobScheduler:Jobs:test_job:JobName"] = "test_job",
+            ["JobScheduler:Jobs:test_job:Endpoint"] = "https://api.example.com/test",
+            ["JobScheduler:Jobs:test_job:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:test_job:AuthType"] = "none",
+            ["JobScheduler:Jobs:test_job:TimeoutSeconds"] = "30",
+        };
+
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
+
+        // Act & Assert - Should fail because of snake_case naming
+        result.Failed.Should().BeTrue();
+        
+        // Check that we get Azure naming validation failure
+        result.Failures.Should().Contain(f => f.Contains("test_job") && f.Contains("camelCase") && f.Contains("Azure compatibility"));
+    }
+
+    [Fact]
+    public void Validate_WithInvalidJobNameStartingWithNumber_ReturnsFailure()
+    {
+        // Arrange - Configuration with job name starting with number (invalid for Azure)
+        var configData = new Dictionary<string, string?>
+        {
+            ["JobScheduler:Jobs:1containerHealth:JobName"] = "1containerHealth",
+            ["JobScheduler:Jobs:1containerHealth:Endpoint"] = "https://api.example.com/health",
+            ["JobScheduler:Jobs:1containerHealth:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:1containerHealth:AuthType"] = "none",
+            ["JobScheduler:Jobs:1containerHealth:TimeoutSeconds"] = "30",
+            
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://api.example.com/batch",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "30",
+        };
+
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
+
+        // Act & Assert - Should fail because job name starts with number
+        result.Failed.Should().BeTrue();
+        result.Failures.Should().Contain("Job '1containerHealth': Job name must start with a letter for Azure compatibility.");
+    }
+
+    [Fact]
+    public void Validate_WithTooLongJobName_ReturnsFailure()
+    {
+        // Arrange - Configuration with job name exceeding 63 characters
+        var longJobName = new string('a', 65); // 65 characters, exceeds limit
+        var configData = new Dictionary<string, string?>
+        {
+            [$"JobScheduler:Jobs:{longJobName}:JobName"] = longJobName,
+            [$"JobScheduler:Jobs:{longJobName}:Endpoint"] = "https://api.example.com/health",
+            [$"JobScheduler:Jobs:{longJobName}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{longJobName}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{longJobName}:TimeoutSeconds"] = "30",
+            
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://api.example.com/batch",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "30",
+        };
+
+        using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
+        var result = setup.ValidateConfiguration();
+
+        // Act & Assert - Should fail because job name is too long
+        result.Failed.Should().BeTrue();
+        result.Failures.Should().Contain($"Job '{longJobName}': Job name exceeds 63 characters, which may cause issues with Azure resources.");
+    }
 }
