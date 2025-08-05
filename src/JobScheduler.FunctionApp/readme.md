@@ -1,4 +1,14 @@
-# TimerTrigger - C<span>#</span>
+# JobScheduler Function App
+
+Testing enhanced deployment with Key Vault integration and Datadog logging validation.
+
+## Features
+- Azure Key Vault integration for secure secrets management
+- Datadog observability with structured logging
+- Containerized deployment with Docker
+- Jenkins CI/CD with automatic function metadata sync
+
+## Original TimerTrigger Documentation
 
 The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. This sample demonstrates a simple use case of calling your function every 5 minutes.
 
