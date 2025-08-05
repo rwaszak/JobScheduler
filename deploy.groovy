@@ -65,8 +65,13 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
     echo "TESTING: Creating/updating container-compatible Azure Functions app: ${functionAppName}"
     
     sh """
-        # Check if the Function App exists
-        if az functionapp show --name ${functionAppName} --resource-group ${resourceGroup} &>/dev/null; then
+        # Check if the Function App exists (proper Jenkins shell syntax)
+        set +e  # Don't fail on error for the check
+        az functionapp show --name ${functionAppName} --resource-group ${resourceGroup} > /dev/null 2>&1
+        APP_EXISTS=\$?
+        set -e  # Re-enable fail on error
+        
+        if [ \$APP_EXISTS -eq 0 ]; then
             echo "Function App ${functionAppName} exists - updating container"
             
             # Update the existing Function App with new container image
