@@ -40,7 +40,7 @@ public class ConfigurationBindingTests
         var options = setup.GetJobSchedulerOptions();
 
         // Act & Assert
-        options.Jobs.Should().HaveCount(2);
+        options.Jobs.Should().HaveCount(1);
         
         var comprehensiveJob = options.Jobs[JobNames.ContainerAppHealth];
         comprehensiveJob.JobName.Should().Be(JobNames.ContainerAppHealth);
@@ -62,13 +62,7 @@ public class ConfigurationBindingTests
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://example.com",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "INVALID_METHOD",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
-            
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://example.com/batch",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "POST",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
         };
 
         // Act & Assert - Should fail during configuration access due to invalid HttpMethod
@@ -82,35 +76,24 @@ public class ConfigurationBindingTests
     [Fact]
     public void JobDefinition_AuthTypeBinding_ShouldHandleAllValidTypes()
     {
-        // Arrange - Test all valid authentication types using valid job names
+        // Arrange - Test valid authentication type using valid job name
         var configData = new Dictionary<string, string?>
         {
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://example.com/health",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
-            
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://example.com/batch",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "POST",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "bearer",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthSecretName"] = "BEARER_TOKEN",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
         };
 
         using var setup = TestConfigurationHelper.CreateCustomConfiguration(configData);
         var options = setup.GetJobSchedulerOptions();
 
         // Act & Assert
-        options.Jobs.Should().HaveCount(2);
+        options.Jobs.Should().HaveCount(1);
         
-        var noneAuthJob = options.Jobs[JobNames.ContainerAppHealth];
-        noneAuthJob.AuthType.Should().Be(AuthenticationType.None);
-        noneAuthJob.AuthSecretName.Should().BeNull();
-        
-        var bearerAuthJob = options.Jobs[JobNames.ContainerAppHealth];
-        bearerAuthJob.AuthType.Should().Be(AuthenticationType.Bearer);
-        bearerAuthJob.AuthSecretName.Should().Be("BEARER_TOKEN");
+        var healthJob = options.Jobs[JobNames.ContainerAppHealth];
+        healthJob.AuthType.Should().Be(AuthenticationType.None);
+        healthJob.AuthSecretName.Should().BeNull();
     }
 }

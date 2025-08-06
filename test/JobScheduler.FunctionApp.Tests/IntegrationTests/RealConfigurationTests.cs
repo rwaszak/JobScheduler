@@ -24,14 +24,7 @@ public class RealConfigurationTests
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://int-svc-be-capp-dev.whitesky-4effbccc.centralus.azurecontainerapps.io/health",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
-            
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://your-api.azurecontainerapps.io/api/batch-process",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "POST",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "bearer",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthSecretName"] = "DAILY_BATCH_TOKEN",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "120",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
         };
 
         using var setup = TestConfigurationHelper.CreateCustomConfiguration(productionLikeConfig);
@@ -40,20 +33,12 @@ public class RealConfigurationTests
 
         // Act & Assert - Verify the complete pipeline works
         options.Jobs.Should().ContainKey(JobNames.ContainerAppHealth);
-        options.Jobs.Should().ContainKey(JobNames.ContainerAppHealth);
 
         var healthCheckJob = jobConfigProvider.GetJobConfig(JobNames.ContainerAppHealth);
         healthCheckJob.Should().NotBeNull();
         healthCheckJob.JobName.Should().Be(JobNames.ContainerAppHealth);
         healthCheckJob.HttpMethod.Should().Be(HttpMethod.Get);
         healthCheckJob.AuthType.Should().Be(AuthenticationType.None);
-
-        var batchJob = jobConfigProvider.GetJobConfig(JobNames.ContainerAppHealth);
-        batchJob.Should().NotBeNull();
-        batchJob.JobName.Should().Be(JobNames.ContainerAppHealth);
-        batchJob.HttpMethod.Should().Be(HttpMethod.Post);
-        batchJob.AuthType.Should().Be(AuthenticationType.Bearer);
-        batchJob.AuthSecretName.Should().Be("DAILY_BATCH_TOKEN");
     }
 
     [Fact]
@@ -91,7 +76,7 @@ public class RealConfigurationTests
         
         // Verify it can fetch jobs correctly
         var allJobs = provider.GetAllJobConfigs().ToList();
-        allJobs.Should().HaveCount(2);
+        allJobs.Should().HaveCount(1);
         allJobs.Should().Contain(job => job.JobName == JobNames.ContainerAppHealth);
         allJobs.Should().Contain(job => job.JobName == JobNames.ContainerAppHealth);
     }

@@ -21,7 +21,7 @@ public class ValidationDebugTests
         // Act - Try to get options
         var options = setup.GetJobSchedulerOptions();
         options.Should().NotBeNull();
-        options.Jobs.Should().HaveCount(2);
+        options.Jobs.Should().HaveCount(1);
         
         // Act - Try validation manually
         var result = validator.Validate(null, options);
@@ -38,14 +38,10 @@ public class ValidationDebugTests
     }
 
     [Fact]
-    public void Validation_ShouldFail_WithSingleJob_BecauseJobNamesConstantsRequireAllJobs()
+    public void Validation_ShouldFail_WithMissingJob_BecauseJobNamesConstantsRequireAllJobs()
     {
-        // Arrange - Test with just the container health job (should fail because ContainerAppHealth is missing)
-        using var setup = TestConfigurationHelper.CreateSingleJobConfiguration(
-            jobName: JobNames.ContainerAppHealth,
-            endpoint: "https://example.com/health", 
-            httpMethod: "GET",
-            authType: "none");
+        // Arrange - Test with empty configuration (should fail because ContainerAppHealth is missing)
+        using var setup = TestConfigurationHelper.CreateEmptyConfiguration();
         
         // Act
         var result = setup.ValidateConfiguration();

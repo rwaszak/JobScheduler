@@ -47,21 +47,11 @@ public class JobNameValidationIntegrationTests
     [Fact]
     public void ApplicationStartup_WithMissingJobConfiguration_ShouldFailValidation()
     {
-        // Arrange - Missing one required job configuration
+        // Arrange - Missing required job configuration (empty configuration)
         var options = new JobSchedulerOptions
         {
-            Jobs = new Dictionary<string, JobDefinition>
-            {
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/health",
-                    HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
-                }
-                // Missing JobNames.ContainerAppHealth configuration
-            }
+            Jobs = new Dictionary<string, JobDefinition>()
+            // No jobs configured, but JobNames constants expect ContainerAppHealth
         };
 
         var configuration = new ConfigurationBuilder().Build();
@@ -131,7 +121,7 @@ public class JobNameValidationIntegrationTests
 
         // Assert - These tests will fail if constants are accidentally changed
         containerHealth.Should().Be("containerAppHealth");
-        ContainerAppHealth.Should().Be("ContainerAppHealth");
+        ContainerAppHealth.Should().Be("containerAppHealth");
     }
 
     [Fact]
@@ -157,7 +147,6 @@ public class JobNameValidationIntegrationTests
         // Arrange - Expected job names from constants
         var expectedJobNames = new HashSet<string>
         {
-            JobNames.ContainerAppHealth,
             JobNames.ContainerAppHealth
         };
 
@@ -170,6 +159,6 @@ public class JobNameValidationIntegrationTests
 
         // Assert
         actualJobNames.Should().BeEquivalentTo(expectedJobNames);
-        actualJobNames.Should().HaveCount(2, "There should be exactly 2 job name constants defined");
+        actualJobNames.Should().HaveCount(1, "There should be exactly 1 job name constant defined");
     }
 }
