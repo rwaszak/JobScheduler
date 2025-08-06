@@ -75,7 +75,6 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             --resource-group ${resourceGroup} \\
             --location centralus \\
             --sku standard \\
-            --enable-rbac-authorization true \\
             --default-action Allow \\
             --bypass AzureServices || echo "Key Vault might already exist, continuing..."
         
@@ -90,6 +89,14 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             sleep 60
             az keyvault show --name ${keyVaultName} --resource-group ${resourceGroup}
         }
+
+        # Grant access policies to Jenkins service principal for deployment operations
+        echo "Setting access policy for Jenkins service principal..."
+        az keyvault set-policy \\
+            --name ${keyVaultName} \\
+            --resource-group ${resourceGroup} \\
+            --spn \$AZURE_CLIENT_ID \\
+            --secret-permissions get set list delete || echo "Access policy might already be set, continuing..."
 
         # Check if the Function App exists (proper Jenkins shell syntax)
         set +e  # Don't fail on error for the check
@@ -146,23 +153,17 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         FUNCTION_APP_IDENTITY=\$(az functionapp identity show --name ${functionAppName} --resource-group ${resourceGroup} --query principalId -o tsv)
         echo "Function App Managed Identity: \$FUNCTION_APP_IDENTITY"
 
-        # Grant Key Vault Secrets User role to the Function App's managed identity
-        echo "Granting Key Vault access to Function App managed identity..."
-        az role assignment create \\
-            --assignee \$FUNCTION_APP_IDENTITY \\
-            --role "Key Vault Secrets User" \\
-            --scope "/subscriptions/\$(az account show --query id -o tsv)/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${keyVaultName}" || echo "Role assignment might already exist, continuing..."
+        # Grant access policy to Function App's managed identity for runtime operations
+        echo "Setting access policy for Function App managed identity..."
+        az keyvault set-policy \\
+            --name ${keyVaultName} \\
+            --resource-group ${resourceGroup} \\
+            --object-id \$FUNCTION_APP_IDENTITY \\
+            --secret-permissions get list || echo "Access policy might already be set, continuing..."
 
-        # Grant Key Vault access to the Jenkins service principal for deployment operations
-        echo "Granting Key Vault access to Jenkins service principal for deployment..."
-        az role assignment create \\
-            --assignee \$AZURE_CLIENT_ID \\
-            --role "Key Vault Secrets Officer" \\
-            --scope "/subscriptions/\$(az account show --query id -o tsv)/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${keyVaultName}" || echo "Role assignment might already exist, continuing..."
-
-        # Wait for role assignments to propagate
-        echo "Waiting for role assignments to propagate..."
-        sleep 30
+        # Wait for access policies to propagate
+        echo "Waiting for access policies to propagate..."
+        sleep 15
 
         # Store secrets in Key Vault (will update if they already exist)
         echo "Setting datadog-api-key secret in Key Vault..."
@@ -194,7 +195,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-webjobs-storage)" \\
                 AZURE_KEY_VAULT_URL="https://${keyVaultName}.vault.azure.net/" \\
-                DATADOG_API_KEY="${DD_API_KEY}" \\
+                KeyVault__VaultUrl="https://${keyVaultName}.vault.azure.net/" \\
                 JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
                 DD_SITE="us3.datadoghq.com" \\
                 DD_ENV="${config.environment}" \\
@@ -260,7 +261,7 @@ def deployToAzureFunctions(config, resourceGroup, functionAppName, appServicePla
                 FUNCTIONS_WORKER_RUNTIME="dotnet-isolated" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
-                DATADOG_API_KEY="${DD_API_KEY}" \\
+                KeyVault__VaultUrl="${keyVaultUrl}" \\
                 DD_SITE="us3.datadoghq.com" \\
                 DD_ENV="${config.environment}" \\
                 DD_SERVICE="jobscheduler-functions" \\
