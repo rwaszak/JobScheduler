@@ -46,23 +46,27 @@ namespace JobScheduler.FunctionApp.Services
         {
             try
             {
+                // Use the resolved DATADOG_API_KEY environment variable instead of the configuration binding
+                var datadogApiKey = Environment.GetEnvironmentVariable("DATADOG_API_KEY");
+                
                 // Debug logging to understand configuration binding
-                _logger.LogInformation("Datadog configuration check - ApiKey: {HasApiKey}, Site: {Site}", 
-                    !string.IsNullOrEmpty(_loggingOptions.DatadogApiKey) ? "***PRESENT***" : "NULL/EMPTY", 
+                _logger.LogInformation("Datadog configuration check - ApiKey from config: {HasConfigApiKey}, ApiKey from env: {HasEnvApiKey}, Site: {Site}", 
+                    !string.IsNullOrEmpty(_loggingOptions.DatadogApiKey) ? "***PRESENT***" : "NULL/EMPTY",
+                    !string.IsNullOrEmpty(datadogApiKey) ? "***PRESENT***" : "NULL/EMPTY",
                     _loggingOptions.DatadogSite);
 
-                if (string.IsNullOrEmpty(_loggingOptions.DatadogApiKey)) 
+                if (string.IsNullOrEmpty(datadogApiKey)) 
                 {
-                    _logger.LogWarning("Datadog API key is null or empty - skipping Datadog logging");
+                    _logger.LogWarning("Datadog API key from environment is null or empty - skipping Datadog logging");
                     return;
                 }
 
                 var json = JsonSerializer.Serialize(logEntry);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{_loggingOptions.DatadogApiKey}";
+                var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{datadogApiKey}";
 
-                _logger.LogInformation("Sending log to Datadog URL: {Url}", url.Replace(_loggingOptions.DatadogApiKey, "***API-KEY***"));
+                _logger.LogInformation("Sending log to Datadog URL: {Url}", url.Replace(datadogApiKey, "***API-KEY***"));
 
                 var httpClient = _httpClientFactory.CreateClient();
                 var response = await httpClient.PostAsync(url, content);
