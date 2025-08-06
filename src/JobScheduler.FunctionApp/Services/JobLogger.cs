@@ -21,6 +21,10 @@ namespace JobScheduler.FunctionApp.Services
 
         public async Task LogAsync(LogLevel level, string jobName, string message, object? metadata = null)
         {
+            // Add explicit logging to understand when this method is called
+            _logger.LogInformation("JobLogger.LogAsync called - JobName: {JobName}, Level: {Level}, Message: {Message}", 
+                jobName, level, message);
+
             var logEntry = new
             {
                 Timestamp = DateTime.UtcNow,
@@ -42,15 +46,28 @@ namespace JobScheduler.FunctionApp.Services
         {
             try
             {
-                if (string.IsNullOrEmpty(_loggingOptions.DatadogApiKey)) return;
+                // Debug logging to understand configuration binding
+                _logger.LogInformation("Datadog configuration check - ApiKey: {HasApiKey}, Site: {Site}", 
+                    !string.IsNullOrEmpty(_loggingOptions.DatadogApiKey) ? "***PRESENT***" : "NULL/EMPTY", 
+                    _loggingOptions.DatadogSite);
+
+                if (string.IsNullOrEmpty(_loggingOptions.DatadogApiKey)) 
+                {
+                    _logger.LogWarning("Datadog API key is null or empty - skipping Datadog logging");
+                    return;
+                }
 
                 var json = JsonSerializer.Serialize(logEntry);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
                 var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{_loggingOptions.DatadogApiKey}";
 
+                _logger.LogInformation("Sending log to Datadog URL: {Url}", url.Replace(_loggingOptions.DatadogApiKey, "***API-KEY***"));
+
                 var httpClient = _httpClientFactory.CreateClient();
-                await httpClient.PostAsync(url, content);
+                var response = await httpClient.PostAsync(url, content);
+                
+                _logger.LogInformation("Datadog response: {StatusCode}", response.StatusCode);
             }
             catch (Exception ex)
             {
