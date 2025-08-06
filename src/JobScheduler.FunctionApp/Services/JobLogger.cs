@@ -27,12 +27,20 @@ namespace JobScheduler.FunctionApp.Services
 
             var logEntry = new
             {
-                Timestamp = DateTime.UtcNow,
-                Level = level.ToString(),
-                JobName = jobName,
-                Message = message,
-                Service = "job-executor",
-                Metadata = _loggingOptions.IncludeMetadata ? metadata : null
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                level = level.ToString().ToUpper(),
+                message = message,
+                service = "jobscheduler-functions",
+                source = "azure-functions",
+                hostname = Environment.MachineName,
+                ddsource = "azure-functions",
+                ddtags = $"env:{Environment.GetEnvironmentVariable("DD_ENV") ?? "unknown"},service:jobscheduler-functions,version:{Environment.GetEnvironmentVariable("DD_VERSION") ?? "unknown"},job_name:{jobName}",
+                logger = new
+                {
+                    name = "JobScheduler.JobLogger",
+                    thread_name = System.Threading.Thread.CurrentThread.Name ?? "Unknown"
+                },
+                attributes = _loggingOptions.IncludeMetadata ? metadata : null
             };
 
             // Log to ILogger (Application Insights)
@@ -72,6 +80,8 @@ namespace JobScheduler.FunctionApp.Services
 
                 var json = JsonSerializer.Serialize(logEntry);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                _logger.LogInformation("Sending JSON to Datadog: {JsonPayload}", json);
 
                 var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{datadogApiKey}";
 
