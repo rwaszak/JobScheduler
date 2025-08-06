@@ -70,6 +70,22 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
     sh """
         # Create Key Vault for secrets management (always ensure it exists)
         echo "Creating/verifying Key Vault: ${keyVaultName}"
+        
+        # Check if Key Vault exists and delete if it has RBAC enabled (incompatible with access policies)
+        if az keyvault show --name ${keyVaultName} --resource-group ${resourceGroup} 2>/dev/null; then
+            echo "Key Vault exists, checking if RBAC is enabled..."
+            RBAC_ENABLED=\$(az keyvault show --name ${keyVaultName} --resource-group ${resourceGroup} --query properties.enableRbacAuthorization -o tsv)
+            if [ "\$RBAC_ENABLED" = "true" ]; then
+                echo "Key Vault has RBAC enabled, deleting and recreating with access policies..."
+                az keyvault delete --name ${keyVaultName} --resource-group ${resourceGroup}
+                az keyvault purge --name ${keyVaultName} --location centralus || echo "Purge not needed or failed, continuing..."
+                sleep 10
+            else
+                echo "Key Vault already uses access policies, good to continue"
+            fi
+        fi
+        
+        # Create Key Vault with access policies (no RBAC)
         az keyvault create \\
             --name ${keyVaultName} \\
             --resource-group ${resourceGroup} \\
@@ -106,6 +122,10 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         
         if [ \$APP_EXISTS -eq 0 ]; then
             echo "Function App ${functionAppName} exists - updating container"
+            
+            # Ensure the Function App has managed identity enabled
+            echo "Enabling managed identity on existing Function App..."
+            az functionapp identity assign --name ${functionAppName} --resource-group ${resourceGroup}
             
             # Update the existing Function App with new container image
             az functionapp config container set \\
@@ -150,16 +170,31 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
 
         # Ensure Function App has managed identity and Key Vault access (regardless of whether app was created or updated)
         # Get the Function App's managed identity principal ID
+        echo "Getting Function App managed identity..."
         FUNCTION_APP_IDENTITY=\$(az functionapp identity show --name ${functionAppName} --resource-group ${resourceGroup} --query principalId -o tsv)
+        
+        # Check if identity was retrieved successfully
+        if [ -z "\$FUNCTION_APP_IDENTITY" ] || [ "\$FUNCTION_APP_IDENTITY" = "None" ]; then
+            echo "No managed identity found, assigning one..."
+            az functionapp identity assign --name ${functionAppName} --resource-group ${resourceGroup}
+            sleep 10  # Wait for identity assignment to complete
+            FUNCTION_APP_IDENTITY=\$(az functionapp identity show --name ${functionAppName} --resource-group ${resourceGroup} --query principalId -o tsv)
+        fi
+        
         echo "Function App Managed Identity: \$FUNCTION_APP_IDENTITY"
 
         # Grant access policy to Function App's managed identity for runtime operations
         echo "Setting access policy for Function App managed identity..."
-        az keyvault set-policy \\
-            --name ${keyVaultName} \\
-            --resource-group ${resourceGroup} \\
-            --object-id \$FUNCTION_APP_IDENTITY \\
-            --secret-permissions get list || echo "Access policy might already be set, continuing..."
+        if [ -n "\$FUNCTION_APP_IDENTITY" ] && [ "\$FUNCTION_APP_IDENTITY" != "None" ]; then
+            az keyvault set-policy \\
+                --name ${keyVaultName} \\
+                --resource-group ${resourceGroup} \\
+                --object-id \$FUNCTION_APP_IDENTITY \\
+                --secret-permissions get list || echo "Access policy might already be set, continuing..."
+        else
+            echo "ERROR: Could not get Function App managed identity. Cannot set Key Vault access policy."
+            exit 1
+        fi
 
         # Wait for access policies to propagate
         echo "Waiting for access policies to propagate..."
