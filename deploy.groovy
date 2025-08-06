@@ -152,7 +152,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 FUNCTIONS_WORKER_RUNTIME="dotnet-isolated" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${functionAppName}-kv;SecretName=azure-webjobs-storage)" \\
-                DATADOG_API_KEY="@Microsoft.KeyVault(VaultName=${functionAppName}-kv;SecretName=datadog-api-key)" \\
+                DATADOG_API_KEY="${DD_API_KEY}" \\
                 JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${functionAppName}-kv;SecretName=datadog-api-key)" \\
                 DD_SITE="us3.datadoghq.com" \\
                 DD_ENV="${config.environment}" \\
