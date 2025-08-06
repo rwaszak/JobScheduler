@@ -10,12 +10,14 @@ namespace JobScheduler.FunctionApp.Services
     {
         private readonly ILogger<JobLogger> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ISecretManager _secretManager;
         private readonly LoggingOptions _loggingOptions;
 
-        public JobLogger(ILogger<JobLogger> logger, IHttpClientFactory httpClientFactory, IOptions<JobSchedulerOptions> options)
+        public JobLogger(ILogger<JobLogger> logger, IHttpClientFactory httpClientFactory, ISecretManager secretManager, IOptions<JobSchedulerOptions> options)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _secretManager = secretManager;
             _loggingOptions = options.Value.Logging;
         }
 
@@ -50,19 +52,21 @@ namespace JobScheduler.FunctionApp.Services
         {
             try
             {
-                // Use the resolved DATADOG_API_KEY environment variable instead of the configuration binding
-                var datadogApiKey = Environment.GetEnvironmentVariable("DATADOG_API_KEY");
-
-                if (string.IsNullOrEmpty(datadogApiKey)) 
+                // Use the secret manager to retrieve the Datadog API key
+                string? datadogApiKey = null;
+                try
                 {
-                    _logger.LogWarning("Datadog API key from environment is null or empty - skipping Datadog logging");
+                    datadogApiKey = await _secretManager.GetSecretAsync("DATADOG_API_KEY");
+                }
+                catch (InvalidOperationException)
+                {
+                    _logger.LogWarning("Datadog API key 'DATADOG_API_KEY' not found in secret store - skipping Datadog logging");
                     return;
                 }
 
-                // Check if we're still getting a Key Vault reference
-                if (datadogApiKey.StartsWith("@Microsoft.KeyVault"))
+                if (string.IsNullOrEmpty(datadogApiKey))
                 {
-                    _logger.LogError("Environment variable DATADOG_API_KEY contains Key Vault reference instead of resolved value: {Reference}", datadogApiKey);
+                    _logger.LogWarning("Datadog API key from secret store is null or empty - skipping Datadog logging");
                     return;
                 }
 

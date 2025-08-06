@@ -29,7 +29,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             
             var testOptions = TestOptions.CreateDefault();
             var loggerProvider = new TestLoggerProvider<JobLogger>();
-            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, testOptions);
+            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, _secretManager, testOptions);
             
             var metricsLoggerProvider = new TestLoggerProvider<JobMetrics>();
             _jobMetrics = new JobMetrics(metricsLoggerProvider, testOptions);

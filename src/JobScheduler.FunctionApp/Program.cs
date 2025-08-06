@@ -58,7 +58,7 @@ internal class Program
 
         // Register core services with appropriate lifetimes
         builder.Services
-            .AddSingleton<ISecretManager, EnvironmentSecretManager>()
+            .AddSingleton<ISecretManager, KeyVaultSecretManager>()
             .AddSingleton<IJobConfigurationProvider, OptionsJobConfigurationProvider>()
             .AddScoped<IJobExecutor, JobExecutor>()
             .AddScoped<IJobLogger, JobLogger>()
