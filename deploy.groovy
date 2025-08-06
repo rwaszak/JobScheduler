@@ -65,6 +65,14 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
     echo "TESTING: Creating/updating container-compatible Azure Functions app: ${functionAppName}"
     
     sh """
+        # Create Key Vault for secrets management (always ensure it exists)
+        az keyvault create \\
+            --name ${functionAppName}-kv \\
+            --resource-group ${resourceGroup} \\
+            --location centralus \\
+            --sku standard \\
+            --enable-rbac-authorization true || echo "Key Vault might already exist, continuing..."
+
         # Check if the Function App exists (proper Jenkins shell syntax)
         set +e  # Don't fail on error for the check
         az functionapp show --name ${functionAppName} --resource-group ${resourceGroup} > /dev/null 2>&1
@@ -92,14 +100,6 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 --kind StorageV2 \\
                 --allow-blob-public-access false || echo "Storage account might already exist, continuing..."
             
-            # Create Key Vault for secrets management
-            az keyvault create \\
-                --name ${functionAppName}-kv \\
-                --resource-group ${resourceGroup} \\
-                --location centralus \\
-                --sku standard \\
-                --enable-rbac-authorization true || echo "Key Vault might already exist, continuing..."
-            
             # Create a new Premium Function App that supports containers
             # First create an App Service Plan (Premium V2 for Functions)
             az appservice plan create \\
@@ -121,24 +121,25 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion} \\
                 --registry-server https://${env.DOCKER_REGISTRY_NAME}.azurecr.io \\
                 --assign-identity
-
-            # Get the Function App's managed identity principal ID
-            FUNCTION_APP_IDENTITY=\$(az functionapp identity show --name ${functionAppName} --resource-group ${resourceGroup} --query principalId -o tsv)
-            echo "Function App Managed Identity: \$FUNCTION_APP_IDENTITY"
-
-            # Grant Key Vault Secrets User role to the Function App's managed identity
-            az role assignment create \\
-                --assignee \$FUNCTION_APP_IDENTITY \\
-                --role "Key Vault Secrets User" \\
-                --scope "/subscriptions/\$(az account show --query id -o tsv)/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${functionAppName}-kv"
-
-            # Store secrets in Key Vault
-            az keyvault secret set --vault-name ${functionAppName}-kv --name "datadog-api-key" --value "${DD_API_KEY}"
-            
-            # Get storage account connection string and store in Key Vault
-            STORAGE_CONN_STRING=\$(az storage account show-connection-string --name jobschedulerteststorage --resource-group ${resourceGroup} --query connectionString -o tsv)
-            az keyvault secret set --vault-name ${functionAppName}-kv --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING"
         fi
+
+        # Ensure Function App has managed identity and Key Vault access (regardless of whether app was created or updated)
+        # Get the Function App's managed identity principal ID
+        FUNCTION_APP_IDENTITY=\$(az functionapp identity show --name ${functionAppName} --resource-group ${resourceGroup} --query principalId -o tsv)
+        echo "Function App Managed Identity: \$FUNCTION_APP_IDENTITY"
+
+        # Grant Key Vault Secrets User role to the Function App's managed identity
+        az role assignment create \\
+            --assignee \$FUNCTION_APP_IDENTITY \\
+            --role "Key Vault Secrets User" \\
+            --scope "/subscriptions/\$(az account show --query id -o tsv)/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${functionAppName}-kv" || echo "Role assignment might already exist, continuing..."
+
+        # Store secrets in Key Vault
+        az keyvault secret set --vault-name ${functionAppName}-kv --name "datadog-api-key" --value "${DD_API_KEY}"
+        
+        # Get storage account connection string and store in Key Vault
+        STORAGE_CONN_STRING=\$(az storage account show-connection-string --name jobschedulerteststorage --resource-group ${resourceGroup} --query connectionString -o tsv)
+        az keyvault secret set --vault-name ${functionAppName}-kv --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING"
 
         # Update app settings with Key Vault references (keeping existing environment variables)
         az functionapp config appsettings set \\
@@ -152,6 +153,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 FUNCTIONS_WORKER_RUNTIME="dotnet-isolated" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${functionAppName}-kv;SecretName=azure-webjobs-storage)" \\
+                AZURE_KEY_VAULT_URL="https://${functionAppName}-kv.vault.azure.net/" \\
                 DATADOG_API_KEY="${DD_API_KEY}" \\
                 JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${functionAppName}-kv;SecretName=datadog-api-key)" \\
                 DD_SITE="us3.datadoghq.com" \\
