@@ -50,14 +50,23 @@ namespace JobScheduler.FunctionApp.Services
                 var datadogApiKey = Environment.GetEnvironmentVariable("DATADOG_API_KEY");
                 
                 // Debug logging to understand configuration binding
-                _logger.LogInformation("Datadog configuration check - ApiKey from config: {HasConfigApiKey}, ApiKey from env: {HasEnvApiKey}, Site: {Site}", 
+                _logger.LogInformation("Datadog configuration check - ApiKey from config: {HasConfigApiKey} (value: {ConfigValue}), ApiKey from env: {HasEnvApiKey} (value: {EnvValue}), Site: {Site}", 
                     !string.IsNullOrEmpty(_loggingOptions.DatadogApiKey) ? "***PRESENT***" : "NULL/EMPTY",
+                    _loggingOptions.DatadogApiKey?.Length > 10 ? _loggingOptions.DatadogApiKey.Substring(0, 10) + "..." : _loggingOptions.DatadogApiKey,
                     !string.IsNullOrEmpty(datadogApiKey) ? "***PRESENT***" : "NULL/EMPTY",
+                    datadogApiKey?.Length > 10 ? datadogApiKey.Substring(0, 10) + "..." : datadogApiKey,
                     _loggingOptions.DatadogSite);
 
                 if (string.IsNullOrEmpty(datadogApiKey)) 
                 {
                     _logger.LogWarning("Datadog API key from environment is null or empty - skipping Datadog logging");
+                    return;
+                }
+
+                // Check if we're still getting a Key Vault reference
+                if (datadogApiKey.StartsWith("@Microsoft.KeyVault"))
+                {
+                    _logger.LogError("Environment variable DATADOG_API_KEY contains Key Vault reference instead of resolved value: {Reference}", datadogApiKey);
                     return;
                 }
 
