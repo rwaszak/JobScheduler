@@ -91,6 +91,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             --resource-group ${resourceGroup} \\
             --location centralus \\
             --sku standard \\
+            --enable-rbac-authorization false \\
             --default-action Allow \\
             --bypass AzureServices || echo "Key Vault might already exist, continuing..."
         
