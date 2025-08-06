@@ -24,14 +24,7 @@ public static class TestConfigurationHelper
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://test-api.example.com/health",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
-            
-            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:JobName"] = JobNames.DailyBatch,
-            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:Endpoint"] = "https://test-api.example.com/batch-process",
-            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:HttpMethod"] = "POST",
-            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthType"] = "bearer",
-            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:AuthSecretName"] = "DAILY_BATCH_TOKEN",
-            [$"JobScheduler:Jobs:{JobNames.DailyBatch}:TimeoutSeconds"] = "120",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
         };
 
         return CreateConfiguration(configData);

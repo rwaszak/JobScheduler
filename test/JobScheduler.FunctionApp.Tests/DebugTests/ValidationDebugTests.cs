@@ -40,7 +40,7 @@ public class ValidationDebugTests
     [Fact]
     public void Validation_ShouldFail_WithSingleJob_BecauseJobNamesConstantsRequireAllJobs()
     {
-        // Arrange - Test with just the container health job (should fail because dailyBatch is missing)
+        // Arrange - Test with just the container health job (should fail because ContainerAppHealth is missing)
         using var setup = TestConfigurationHelper.CreateSingleJobConfiguration(
             jobName: JobNames.ContainerAppHealth,
             endpoint: "https://example.com/health", 
@@ -50,8 +50,8 @@ public class ValidationDebugTests
         // Act
         var result = setup.ValidateConfiguration();
         
-        // Assert - Should fail because dailyBatch job is missing
+        // Assert - Should fail because ContainerAppHealth job is missing
         result.Succeeded.Should().BeFalse();
-        result.Failures.Should().Contain($"Job '{JobNames.DailyBatch}' is defined in JobNames constants but missing from configuration.");
+        result.Failures.Should().Contain($"Job '{JobNames.ContainerAppHealth}' is defined in JobNames constants but missing from configuration.");
     }
 }

@@ -54,9 +54,8 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
             var configs = provider.GetAllJobConfigs().ToList();
 
             // Assert
-            configs.Should().HaveCount(2);
+            configs.Should().HaveCount(1);
             configs.Should().Contain(c => c.JobName == JobNames.ContainerAppHealth);
-            configs.Should().Contain(c => c.JobName == JobNames.DailyBatch);
         }
 
         [Fact]

@@ -21,10 +21,6 @@ namespace JobScheduler.FunctionApp.Services
 
         public async Task LogAsync(LogLevel level, string jobName, string message, object? metadata = null)
         {
-            // Add explicit logging to understand when this method is called
-            _logger.LogInformation("JobLogger.LogAsync called - JobName: {JobName}, Level: {Level}, Message: {Message}", 
-                jobName, level, message);
-
             var logEntry = new
             {
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
@@ -56,14 +52,6 @@ namespace JobScheduler.FunctionApp.Services
             {
                 // Use the resolved DATADOG_API_KEY environment variable instead of the configuration binding
                 var datadogApiKey = Environment.GetEnvironmentVariable("DATADOG_API_KEY");
-                
-                // Debug logging to understand configuration binding
-                _logger.LogInformation("Datadog configuration check - ApiKey from config: {HasConfigApiKey} (value: {ConfigValue}), ApiKey from env: {HasEnvApiKey} (value: {EnvValue}), Site: {Site}", 
-                    !string.IsNullOrEmpty(_loggingOptions.DatadogApiKey) ? "***PRESENT***" : "NULL/EMPTY",
-                    _loggingOptions.DatadogApiKey?.Length > 10 ? _loggingOptions.DatadogApiKey.Substring(0, 10) + "..." : _loggingOptions.DatadogApiKey,
-                    !string.IsNullOrEmpty(datadogApiKey) ? "***PRESENT***" : "NULL/EMPTY",
-                    datadogApiKey?.Length > 10 ? datadogApiKey.Substring(0, 10) + "..." : datadogApiKey,
-                    _loggingOptions.DatadogSite);
 
                 if (string.IsNullOrEmpty(datadogApiKey)) 
                 {
@@ -81,16 +69,15 @@ namespace JobScheduler.FunctionApp.Services
                 var json = JsonSerializer.Serialize(logEntry);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                _logger.LogInformation("Sending JSON to Datadog: {JsonPayload}", json);
-
                 var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{datadogApiKey}";
-
-                _logger.LogInformation("Sending log to Datadog URL: {Url}", url.Replace(datadogApiKey, "***API-KEY***"));
 
                 var httpClient = _httpClientFactory.CreateClient();
                 var response = await httpClient.PostAsync(url, content);
                 
-                _logger.LogInformation("Datadog response: {StatusCode}", response.StatusCode);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Failed to send log to Datadog. Status: {StatusCode}", response.StatusCode);
+                }
             }
             catch (Exception ex)
             {

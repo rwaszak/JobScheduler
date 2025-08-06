@@ -24,9 +24,9 @@ public class JobNameValidationIntegrationTests
                     AuthType = AuthenticationType.None,
                     TimeoutSeconds = 30
                 },
-                [JobNames.DailyBatch] = new JobDefinition
+                [JobNames.ContainerAppHealth] = new JobDefinition
                 {
-                    JobName = JobNames.DailyBatch,
+                    JobName = JobNames.ContainerAppHealth,
                     Endpoint = "https://api.example.com/batch",
                     HttpMethod = HttpMethod.Post,
                     AuthType = AuthenticationType.Bearer,
@@ -60,7 +60,7 @@ public class JobNameValidationIntegrationTests
                     AuthType = AuthenticationType.None,
                     TimeoutSeconds = 30
                 }
-                // Missing JobNames.DailyBatch configuration
+                // Missing JobNames.ContainerAppHealth configuration
             }
         };
 
@@ -72,7 +72,7 @@ public class JobNameValidationIntegrationTests
 
         // Assert
         result.Failed.Should().BeTrue();
-        result.Failures.Should().Contain($"Job '{JobNames.DailyBatch}' is defined in JobNames constants but missing from configuration.");
+        result.Failures.Should().Contain($"Job '{JobNames.ContainerAppHealth}' is defined in JobNames constants but missing from configuration.");
     }
 
     [Fact]
@@ -91,9 +91,9 @@ public class JobNameValidationIntegrationTests
                     AuthType = AuthenticationType.None,
                     TimeoutSeconds = 30
                 },
-                [JobNames.DailyBatch] = new JobDefinition
+                [JobNames.ContainerAppHealth] = new JobDefinition
                 {
-                    JobName = JobNames.DailyBatch,
+                    JobName = JobNames.ContainerAppHealth,
                     Endpoint = "https://api.example.com/batch",
                     HttpMethod = HttpMethod.Post,
                     AuthType = AuthenticationType.Bearer,
@@ -127,11 +127,11 @@ public class JobNameValidationIntegrationTests
     {
         // Arrange & Act - Verify the constants have expected values
         var containerHealth = JobNames.ContainerAppHealth;
-        var dailyBatch = JobNames.DailyBatch;
+        var ContainerAppHealth = JobNames.ContainerAppHealth;
 
         // Assert - These tests will fail if constants are accidentally changed
         containerHealth.Should().Be("containerAppHealth");
-        dailyBatch.Should().Be("dailyBatch");
+        ContainerAppHealth.Should().Be("ContainerAppHealth");
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class JobNameValidationIntegrationTests
         var expectedJobNames = new HashSet<string>
         {
             JobNames.ContainerAppHealth,
-            JobNames.DailyBatch
+            JobNames.ContainerAppHealth
         };
 
         // Act - Use the same reflection logic as the validator
