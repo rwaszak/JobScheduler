@@ -6,8 +6,8 @@ using Xunit;
 namespace JobScheduler.FunctionApp.Tests.UnitTests
 {
     /// <summary>
-    /// Tests for the OptionsJobConfigurationProvider using appsettings.json-style configuration.
-    /// This replaces the old environment variable approach with the runtime configuration approach.
+    /// Tests for the OptionsJobConfigurationProvider using test-specific job names.
+    /// These tests are independent of production JobNames and appsettings.json configuration.
     /// </summary>
     public class JobConfigurationProviderTests
     {
@@ -15,15 +15,15 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
         public void GetJobConfig_ExistingJob_ReturnsConfiguration()
         {
             // Arrange
-            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            using var setup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
             var provider = setup.GetJobConfigurationProvider();
 
             // Act
-            var config = provider.GetJobConfig(JobNames.ContainerAppHealth);
+            var config = provider.GetJobConfig(TestJobNames.TestHealthCheck);
 
             // Assert
             config.Should().NotBeNull();
-            config.JobName.Should().Be(JobNames.ContainerAppHealth);
+            config.JobName.Should().Be(TestJobNames.TestHealthCheck);
             config.Endpoint.Should().Be("https://test-api.example.com/health");
             config.HttpMethod.Should().Be(HttpMethod.Get);
             config.AuthType.Should().Be(AuthenticationType.None);
@@ -34,7 +34,7 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
         public void GetJobConfig_NonexistentJob_ThrowsArgumentException()
         {
             // Arrange
-            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            using var setup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
             var provider = setup.GetJobConfigurationProvider();
 
             // Act & Assert
@@ -47,7 +47,7 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
         public void GetAllJobConfigs_ReturnsAllConfigurations()
         {
             // Arrange
-            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            using var setup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
             var provider = setup.GetJobConfigurationProvider();
 
             // Act
@@ -55,18 +55,18 @@ namespace JobScheduler.FunctionApp.Tests.UnitTests
 
             // Assert
             configs.Should().HaveCount(1);
-            configs.Should().Contain(c => c.JobName == JobNames.ContainerAppHealth);
+            configs.Should().Contain(c => c.JobName == TestJobNames.TestHealthCheck);
         }
 
         [Fact]
         public void JobConfiguration_HasCorrectDefaultRetryPolicy()
         {
             // Arrange
-            using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+            using var setup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
             var provider = setup.GetJobConfigurationProvider();
 
             // Act
-            var config = provider.GetJobConfig(JobNames.ContainerAppHealth);
+            var config = provider.GetJobConfig(TestJobNames.TestHealthCheck);
 
             // Assert
             config.RetryPolicy.Should().NotBeNull();

@@ -1,43 +1,39 @@
 using FluentAssertions;
 using JobScheduler.FunctionApp.Configuration;
+using JobScheduler.FunctionApp.Tests.TestHelpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace JobScheduler.FunctionApp.Tests.IntegrationTests;
 
-public class JobNameValidationIntegrationTests
+/// <summary>
+/// Integration tests for job validation framework using test-specific job names.
+/// These tests are independent of production JobNames constants and appsettings.json,
+/// allowing users to add new jobs without breaking existing tests.
+/// </summary>
+public class JobValidationFrameworkTests
 {
     [Fact]
-    public void ApplicationStartup_WithValidConfiguration_ShouldSucceed()
+    public void ValidationFramework_WithValidTestConfiguration_ShouldSucceed()
     {
-        // Arrange - Valid configuration that matches JobNames constants
+        // Arrange - Valid test configuration
         var options = new JobSchedulerOptions
         {
             Jobs = new Dictionary<string, JobDefinition>
             {
-                [JobNames.ContainerAppHealth] = new JobDefinition
+                [TestJobNames.TestHealthCheck] = new JobDefinition
                 {
-                    JobName = JobNames.ContainerAppHealth,
+                    JobName = TestJobNames.TestHealthCheck,
                     Endpoint = "https://api.example.com/health",
                     HttpMethod = HttpMethod.Get,
                     AuthType = AuthenticationType.None,
                     TimeoutSeconds = 30
-                },
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/batch",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "BATCH_TOKEN",
-                    TimeoutSeconds = 120
                 }
             }
         };
 
-        var configuration = new ConfigurationBuilder().Build();
-        var validator = new ValidateJobSchedulerOptions(configuration);
+        var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
 
         // Act & Assert - Should not throw
         var result = validator.Validate(null, options);
@@ -45,50 +41,40 @@ public class JobNameValidationIntegrationTests
     }
 
     [Fact]
-    public void ApplicationStartup_WithMissingJobConfiguration_ShouldFailValidation()
+    public void ValidationFramework_WithMissingJobConfiguration_ShouldFailValidation()
     {
         // Arrange - Missing required job configuration (empty configuration)
         var options = new JobSchedulerOptions
         {
             Jobs = new Dictionary<string, JobDefinition>()
-            // No jobs configured, but JobNames constants expect ContainerAppHealth
+            // No jobs configured, but validator expects TestHealthCheck
         };
 
-        var configuration = new ConfigurationBuilder().Build();
-        var validator = new ValidateJobSchedulerOptions(configuration);
+        var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
 
         // Act
         var result = validator.Validate(null, options);
 
         // Assert
         result.Failed.Should().BeTrue();
-        result.Failures.Should().Contain($"Job '{JobNames.ContainerAppHealth}' is defined in JobNames constants but missing from configuration.");
+        result.Failures.Should().Contain($"Job '{TestJobNames.TestHealthCheck}' is expected but missing from configuration.");
     }
 
     [Fact]
-    public void ApplicationStartup_WithExtraJobConfiguration_ShouldFailValidation()
+    public void ValidationFramework_WithExtraJobConfiguration_ShouldFailValidation()
     {
-        // Arrange - Extra job configuration not defined in constants
+        // Arrange - Extra job configuration not expected by validator
         var options = new JobSchedulerOptions
         {
             Jobs = new Dictionary<string, JobDefinition>
             {
-                [JobNames.ContainerAppHealth] = new JobDefinition
+                [TestJobNames.TestHealthCheck] = new JobDefinition
                 {
-                    JobName = JobNames.ContainerAppHealth,
+                    JobName = TestJobNames.TestHealthCheck,
                     Endpoint = "https://api.example.com/health",
                     HttpMethod = HttpMethod.Get,
                     AuthType = AuthenticationType.None,
                     TimeoutSeconds = 30
-                },
-                [JobNames.ContainerAppHealth] = new JobDefinition
-                {
-                    JobName = JobNames.ContainerAppHealth,
-                    Endpoint = "https://api.example.com/batch",
-                    HttpMethod = HttpMethod.Post,
-                    AuthType = AuthenticationType.Bearer,
-                    AuthSecretName = "BATCH_TOKEN",
-                    TimeoutSeconds = 120
                 },
                 ["unexpected-job"] = new JobDefinition
                 {
@@ -101,64 +87,89 @@ public class JobNameValidationIntegrationTests
             }
         };
 
-        var configuration = new ConfigurationBuilder().Build();
-        var validator = new ValidateJobSchedulerOptions(configuration);
+        var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
 
         // Act
         var result = validator.Validate(null, options);
 
         // Assert
         result.Failed.Should().BeTrue();
-        result.Failures.Should().Contain("Job 'unexpected-job' is configured but not defined in JobNames constants. Consider adding it for type safety.");
+        result.Failures.Should().Contain("Job 'unexpected-job' is configured but not expected in this test scenario.");
     }
 
     [Fact]
-    public void JobNamesConstants_ShouldMatchExpectedValues()
+    public void TestJobNamesConstants_ShouldHaveExpectedValues()
     {
-        // Arrange & Act - Verify the constants have expected values
-        var containerHealth = JobNames.ContainerAppHealth;
-        var ContainerAppHealth = JobNames.ContainerAppHealth;
+        // Arrange & Act - Verify test constants have expected values
+        var testHealthCheck = TestJobNames.TestHealthCheck;
+        var testAuthJob = TestJobNames.TestAuthJob;
 
-        // Assert - These tests will fail if constants are accidentally changed
-        containerHealth.Should().Be("containerAppHealth");
-        ContainerAppHealth.Should().Be("containerAppHealth");
-    }
-
-    [Fact]
-    public void JobNamesConstants_ShouldNotHaveDuplicates()
-    {
-        // Arrange - Get all job name constant values using reflection
-        var jobNameConstants = typeof(JobNames)
-            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly)
-            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
-            .Select(f => (string)f.GetValue(null)!)
-            .ToList();
-
-        // Act & Assert - Verify no duplicate values
-        jobNameConstants.Should().OnlyHaveUniqueItems("Job name constants should not have duplicate values");
-        jobNameConstants.Should().NotBeEmpty("At least one job name constant should be defined");
-    }
-
-    [Fact]
-    public void GetDefinedJobNames_ShouldReturnAllConstants()
-    {
-        // This test uses reflection to verify our validation logic can find all constants
+        // Assert - These tests ensure test constants remain stable
+        testHealthCheck.Should().Be("testHealthCheck");
+        testAuthJob.Should().Be("testAuthJob");
         
-        // Arrange - Expected job names from constants
-        var expectedJobNames = new HashSet<string>
+        // Verify all test jobs are unique
+        TestJobNames.AllTestJobs.Should().OnlyHaveUniqueItems("Test job names should not have duplicates");
+        TestJobNames.AllTestJobs.Should().NotBeEmpty("At least one test job name should be defined");
+    }
+
+    [Fact]
+    public void ValidationFramework_WithMultipleJobs_ShouldValidateAll()
+    {
+        // Arrange - Configuration with multiple test jobs
+        var options = new JobSchedulerOptions
         {
-            JobNames.ContainerAppHealth
+            Jobs = new Dictionary<string, JobDefinition>
+            {
+                [TestJobNames.TestHealthCheck] = new JobDefinition
+                {
+                    JobName = TestJobNames.TestHealthCheck,
+                    Endpoint = "https://api.example.com/health",
+                    HttpMethod = HttpMethod.Get,
+                    AuthType = AuthenticationType.None,
+                    TimeoutSeconds = 30
+                },
+                [TestJobNames.TestAuthJob] = new JobDefinition
+                {
+                    JobName = TestJobNames.TestAuthJob,
+                    Endpoint = "https://api.example.com/auth",
+                    HttpMethod = HttpMethod.Post,
+                    AuthType = AuthenticationType.Bearer,
+                    AuthSecretName = "TEST_TOKEN",
+                    TimeoutSeconds = 60
+                }
+            }
         };
 
-        // Act - Use the same reflection logic as the validator
-        var actualJobNames = typeof(JobNames)
-            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly)
-            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
-            .Select(f => (string)f.GetValue(null)!)
-            .ToHashSet();
+        var validator = new TestJobSchedulerOptionsValidator(TestJobNames.TestHealthCheck, TestJobNames.TestAuthJob);
+
+        // Act
+        var result = validator.Validate(null, options);
 
         // Assert
-        actualJobNames.Should().BeEquivalentTo(expectedJobNames);
-        actualJobNames.Should().HaveCount(1, "There should be exactly 1 job name constant defined");
+        result.Should().Be(ValidateOptionsResult.Success);
+    }
+
+    [Fact]
+    public void ValidationFramework_ConfigurationIntegration_ShouldWork()
+    {
+        // This test verifies the framework can work with configuration providers
+        
+        // Arrange
+        using var setup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
+        var options = setup.GetJobSchedulerOptions();
+        var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
+
+        // Act
+        var result = validator.Validate(null, options);
+
+        // Assert
+        result.Should().Be(ValidateOptionsResult.Success);
+        options.Jobs.Should().ContainKey(TestJobNames.TestHealthCheck);
+        
+        var healthCheckJob = options.Jobs[TestJobNames.TestHealthCheck];
+        healthCheckJob.JobName.Should().Be(TestJobNames.TestHealthCheck);
+        healthCheckJob.HttpMethod.Should().Be(HttpMethod.Get);
+        healthCheckJob.AuthType.Should().Be(AuthenticationType.None);
     }
 }

@@ -8,76 +8,83 @@ using Xunit;
 namespace JobScheduler.FunctionApp.Tests.IntegrationTests;
 
 /// <summary>
-/// Integration tests that verify the complete configuration pipeline matches the runtime behavior.
-/// These tests simulate the exact same setup as Program.cs to ensure the configuration system
-/// works end-to-end as it would in production.
+/// Integration tests that verify the complete configuration pipeline works end-to-end.
+/// These tests simulate the exact same setup as Program.cs using test-specific job names
+/// to ensure the configuration system works without coupling to production job definitions.
 /// </summary>
-public class RealConfigurationTests
+public class ConfigurationPipelineIntegrationTests
 {
     [Fact]
-    public void RuntimeConfiguration_ShouldMatchProductionAppsettingsJson()
+    public void ConfigurationPipeline_ShouldWorkEndToEnd_WithTestConfiguration()
     {
-        // Arrange - Use configuration that matches actual appsettings.json structure
-        var productionLikeConfig = new Dictionary<string, string?>
-        {
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://int-svc-be-capp-dev.whitesky-4effbccc.centralus.azurecontainerapps.io/health",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
-        };
-
-        using var setup = TestConfigurationHelper.CreateCustomConfiguration(productionLikeConfig);
+        // Arrange - Use comprehensive test configuration that exercises the full pipeline
+        using var setup = IndependentTestConfigurationHelper.CreateComprehensiveTestConfiguration();
         var jobConfigProvider = setup.GetJobConfigurationProvider();
         var options = setup.GetJobSchedulerOptions();
 
         // Act & Assert - Verify the complete pipeline works
-        options.Jobs.Should().ContainKey(JobNames.ContainerAppHealth);
+        options.Jobs.Should().ContainKey(TestJobNames.TestHealthCheck);
+        options.Jobs.Should().ContainKey(TestJobNames.TestAuthJob);
 
-        var healthCheckJob = jobConfigProvider.GetJobConfig(JobNames.ContainerAppHealth);
+        var healthCheckJob = jobConfigProvider.GetJobConfig(TestJobNames.TestHealthCheck);
         healthCheckJob.Should().NotBeNull();
-        healthCheckJob.JobName.Should().Be(JobNames.ContainerAppHealth);
+        healthCheckJob.JobName.Should().Be(TestJobNames.TestHealthCheck);
         healthCheckJob.HttpMethod.Should().Be(HttpMethod.Get);
         healthCheckJob.AuthType.Should().Be(AuthenticationType.None);
+
+        var authJob = jobConfigProvider.GetJobConfig(TestJobNames.TestAuthJob);
+        authJob.Should().NotBeNull();
+        authJob.JobName.Should().Be(TestJobNames.TestAuthJob);
+        authJob.HttpMethod.Should().Be(HttpMethod.Post);
+        authJob.AuthType.Should().Be(AuthenticationType.Bearer);
     }
 
     [Fact]
-    public void RuntimeValidation_ShouldPassWithCorrectConfiguration()
+    public void ConfigurationValidation_ShouldPassWithValidTestConfiguration()
     {
-        // Arrange - Use the standard test configuration
-        using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
-        var validationResult = setup.ValidateConfiguration();
+        // Arrange - Use a valid test configuration
+        using var setup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
+        var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
+        var options = setup.GetJobSchedulerOptions();
 
-        // Act & Assert - Validation should succeed with well-formed configuration
+        // Act
+        var validationResult = validator.Validate(null, options);
+
+        // Assert - Validation should succeed with well-formed configuration
         validationResult.Succeeded.Should().BeTrue($"Validation failed: {string.Join(", ", validationResult.Failures ?? [])}");
     }
 
     [Fact]
-    public void RuntimeValidation_ShouldFailGracefullyWithBadConfiguration()
+    public void ConfigurationValidation_ShouldFailGracefullyWithBadConfiguration()
     {
-        // Arrange - Configuration that should fail validation (missing jobs)
-        using var setup = TestConfigurationHelper.CreateEmptyConfiguration();
-        var validationResult = setup.ValidateConfiguration();
+        // Arrange - Configuration that should fail validation (missing expected jobs)
+        using var setup = IndependentTestConfigurationHelper.CreateEmptyTestConfiguration();
+        var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
+        var options = setup.GetJobSchedulerOptions();
 
-        // Act & Assert - Should fail gracefully with clear error messages
-        validationResult.Succeeded.Should().BeFalse("Should fail when no jobs are configured");
-        validationResult.Failures.Should().Contain("At least one job must be configured.");
+        // Act
+        var validationResult = validator.Validate(null, options);
+
+        // Assert - Should fail gracefully with clear error messages
+        validationResult.Succeeded.Should().BeFalse("Should fail when expected jobs are missing");
+        validationResult.Failures.Should().Contain($"Job '{TestJobNames.TestHealthCheck}' is expected but missing from configuration.");
     }
 
     [Fact]
-    public void OptionsJobConfigurationProvider_ShouldBeUsedInRuntime()
+    public void OptionsJobConfigurationProvider_ShouldWorkWithTestConfiguration()
     {
-        // Arrange - Verify that we're using the same provider as runtime
-        using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+        // Arrange - Verify that OptionsJobConfigurationProvider works with test data
+        using var setup = IndependentTestConfigurationHelper.CreateComprehensiveTestConfiguration();
         var provider = setup.GetJobConfigurationProvider();
 
         // Act & Assert - Ensure we're using the correct provider type
-        provider.Should().BeOfType<OptionsJobConfigurationProvider>("Runtime should use OptionsJobConfigurationProvider");
+        provider.Should().BeOfType<OptionsJobConfigurationProvider>("Should use OptionsJobConfigurationProvider for consistency with runtime");
         
-        // Verify it can fetch jobs correctly
+        // Verify it can fetch test jobs correctly
         var allJobs = provider.GetAllJobConfigs().ToList();
-        allJobs.Should().HaveCount(1);
-        allJobs.Should().Contain(job => job.JobName == JobNames.ContainerAppHealth);
-        allJobs.Should().Contain(job => job.JobName == JobNames.ContainerAppHealth);
+        allJobs.Should().HaveCount(3, "Should have TestHealthCheck, TestAuthJob, and TestErrorJob");
+        allJobs.Should().Contain(job => job.JobName == TestJobNames.TestHealthCheck);
+        allJobs.Should().Contain(job => job.JobName == TestJobNames.TestAuthJob);
+        allJobs.Should().Contain(job => job.JobName == TestJobNames.TestErrorJob);
     }
 }
