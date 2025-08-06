@@ -66,12 +66,27 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
     
     sh """
         # Create Key Vault for secrets management (always ensure it exists)
+        echo "Creating/verifying Key Vault: ${functionAppName}-kv"
         az keyvault create \\
             --name ${functionAppName}-kv \\
             --resource-group ${resourceGroup} \\
             --location centralus \\
             --sku standard \\
-            --enable-rbac-authorization true || echo "Key Vault might already exist, continuing..."
+            --enable-rbac-authorization true \\
+            --default-action Allow \\
+            --bypass AzureServices || echo "Key Vault might already exist, continuing..."
+        
+        # Wait for Key Vault to be fully available
+        echo "Waiting for Key Vault to be available..."
+        sleep 30
+        
+        # Verify Key Vault accessibility
+        echo "Testing Key Vault connectivity..."
+        az keyvault show --name ${functionAppName}-kv --resource-group ${resourceGroup} || {
+            echo "Key Vault not accessible, waiting longer..."
+            sleep 60
+            az keyvault show --name ${functionAppName}-kv --resource-group ${resourceGroup}
+        }
 
         # Check if the Function App exists (proper Jenkins shell syntax)
         set +e  # Don't fail on error for the check
@@ -129,17 +144,39 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         echo "Function App Managed Identity: \$FUNCTION_APP_IDENTITY"
 
         # Grant Key Vault Secrets User role to the Function App's managed identity
+        echo "Granting Key Vault access to Function App managed identity..."
         az role assignment create \\
             --assignee \$FUNCTION_APP_IDENTITY \\
             --role "Key Vault Secrets User" \\
             --scope "/subscriptions/\$(az account show --query id -o tsv)/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${functionAppName}-kv" || echo "Role assignment might already exist, continuing..."
 
-        # Store secrets in Key Vault
-        az keyvault secret set --vault-name ${functionAppName}-kv --name "datadog-api-key" --value "${DD_API_KEY}"
+        # Grant Key Vault access to the Jenkins service principal for deployment operations
+        echo "Granting Key Vault access to Jenkins service principal for deployment..."
+        az role assignment create \\
+            --assignee \$AZURE_CLIENT_ID \\
+            --role "Key Vault Secrets Officer" \\
+            --scope "/subscriptions/\$(az account show --query id -o tsv)/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${functionAppName}-kv" || echo "Role assignment might already exist, continuing..."
+
+        # Wait for role assignments to propagate
+        echo "Waiting for role assignments to propagate..."
+        sleep 30
+
+        # Store secrets in Key Vault (will update if they already exist)
+        echo "Setting datadog-api-key secret in Key Vault..."
+        az keyvault secret set --vault-name ${functionAppName}-kv --name "datadog-api-key" --value "${DD_API_KEY}" || {
+            echo "Failed to set datadog-api-key, retrying in 30 seconds..."
+            sleep 30
+            az keyvault secret set --vault-name ${functionAppName}-kv --name "datadog-api-key" --value "${DD_API_KEY}"
+        }
         
         # Get storage account connection string and store in Key Vault
+        echo "Setting azure-webjobs-storage secret in Key Vault..."
         STORAGE_CONN_STRING=\$(az storage account show-connection-string --name jobschedulerteststorage --resource-group ${resourceGroup} --query connectionString -o tsv)
-        az keyvault secret set --vault-name ${functionAppName}-kv --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING"
+        az keyvault secret set --vault-name ${functionAppName}-kv --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING" || {
+            echo "Failed to set azure-webjobs-storage, retrying in 30 seconds..."
+            sleep 30
+            az keyvault secret set --vault-name ${functionAppName}-kv --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING"
+        }
 
         # Update app settings with Key Vault references (keeping existing environment variables)
         az functionapp config appsettings set \\
