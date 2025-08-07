@@ -217,6 +217,34 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             sleep 30
             az keyvault secret set --vault-name ${keyVaultName} --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING"
         }
+        
+        # Get or create Application Insights and store connection string in Key Vault
+        echo "Setting up Application Insights..."
+        APP_INSIGHTS_NAME="jobscheduler-poc-insights"
+        
+        # Check if App Insights exists, create if not
+        if ! az monitor app-insights component show --app \$APP_INSIGHTS_NAME --resource-group ${resourceGroup} > /dev/null 2>&1; then
+            echo "Creating Application Insights instance..."
+            az monitor app-insights component create \\
+                --app \$APP_INSIGHTS_NAME \\
+                --resource-group ${resourceGroup} \\
+                --location centralus \\
+                --kind web \\
+                --application-type web || echo "App Insights might already exist, continuing..."
+        fi
+        
+        # Get App Insights connection string and store in Key Vault
+        echo "Setting app-insights-connection secret in Key Vault..."
+        APP_INSIGHTS_CONN=\$(az monitor app-insights component show --app \$APP_INSIGHTS_NAME --resource-group ${resourceGroup} --query connectionString -o tsv)
+        if [ -n "\$APP_INSIGHTS_CONN" ] && [ "\$APP_INSIGHTS_CONN" != "null" ]; then
+            az keyvault secret set --vault-name ${keyVaultName} --name "app-insights-connection" --value "\$APP_INSIGHTS_CONN" || {
+                echo "Failed to set app-insights-connection, retrying in 30 seconds..."
+                sleep 30
+                az keyvault secret set --vault-name ${keyVaultName} --name "app-insights-connection" --value "\$APP_INSIGHTS_CONN"
+            }
+        else
+            echo "WARNING: Could not retrieve Application Insights connection string"
+        fi
 
         # Update app settings with Key Vault references (keeping existing environment variables)
         az functionapp config appsettings set \\
@@ -245,11 +273,34 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
 
         # Restart the function app to pick up new container
         az functionapp restart --name ${functionAppName} --resource-group ${resourceGroup}
+        
+        # Wait for restart to complete
+        echo "Waiting for Function App to restart..."
+        sleep 30
 
-        # Force sync function triggers to refresh function metadata and clear portal cache
-        echo "Syncing function triggers to refresh Azure Portal function metadata..."
-        SUBSCRIPTION_ID=\$(az account show --query id -o tsv)
-        az rest --method post --url "https://management.azure.com/subscriptions/\$SUBSCRIPTION_ID/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/syncfunctiontriggers?api-version=2016-08-01"
+        # Validate Key Vault references before sync
+        echo "Validating Key Vault references..."
+        az keyvault secret show --vault-name ${keyVaultName} --name "azure-webjobs-storage" --query "value" -o tsv > /dev/null || echo "WARNING: azure-webjobs-storage secret not found in Key Vault"
+        az keyvault secret show --vault-name ${keyVaultName} --name "app-insights-connection" --query "value" -o tsv > /dev/null || echo "WARNING: app-insights-connection secret not found in Key Vault"
+        az keyvault secret show --vault-name ${keyVaultName} --name "datadog-api-key" --query "value" -o tsv > /dev/null || echo "WARNING: datadog-api-key secret not found in Key Vault"
+
+        # Check Function App status before triggering sync
+        echo "Checking Function App status..."
+        FUNCTION_STATUS=\$(az functionapp show --name ${functionAppName} --resource-group ${resourceGroup} --query state -o tsv)
+        echo "Function App State: \$FUNCTION_STATUS"
+        
+        if [ "\$FUNCTION_STATUS" = "Running" ]; then
+            # Force sync function triggers to refresh function metadata and clear portal cache
+            echo "Syncing function triggers to refresh Azure Portal function metadata..."
+            SUBSCRIPTION_ID=\$(az account show --query id -o tsv)
+            az rest --method post --url "https://management.azure.com/subscriptions/\$SUBSCRIPTION_ID/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/syncfunctiontriggers?api-version=2016-08-01" || {
+                echo "WARNING: Function trigger sync failed - this may indicate runtime issues"
+                echo "Checking Function App logs for errors..."
+                az functionapp log tail --name ${functionAppName} --resource-group ${resourceGroup} --provider filesystem || echo "Could not retrieve logs"
+            }
+        else
+            echo "WARNING: Function App is not in Running state, skipping trigger sync"
+        fi
         echo "Function metadata sync completed - Portal should now reflect current functions"
 
         echo "TESTING: Function App ready: https://${functionAppName}.azurewebsites.net"
