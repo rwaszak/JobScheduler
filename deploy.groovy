@@ -128,11 +128,15 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             echo "Enabling managed identity on existing Function App..."
             az functionapp identity assign --name ${functionAppName} --resource-group ${resourceGroup}
             
+            # Use the image tag passed from Jenkins pipeline
+            IMAGE_TAG="${config.buildVersion}"
+            echo "Using image tag from Jenkins: \$IMAGE_TAG"
+            
             # Update the existing Function App with new container image
             az functionapp config container set \\
                 --name ${functionAppName} \\
                 --resource-group ${resourceGroup} \\
-                --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion} \\
+                --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:\$IMAGE_TAG \\
                 --registry-server https://${env.DOCKER_REGISTRY_NAME}.azurecr.io
         else
             echo "Function App ${functionAppName} does not exist - creating new container-compatible Function App"
@@ -155,6 +159,10 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 --sku P1V2 \\
                 --is-linux
             
+            # Use the image tag passed from Jenkins pipeline
+            IMAGE_TAG="${config.buildVersion}"  
+            echo "Using image tag from Jenkins for new Function App: \$IMAGE_TAG"
+            
             # Create Function App with container support
             az functionapp create \\
                 --name ${functionAppName} \\
@@ -164,7 +172,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 --runtime dotnet-isolated \\
                 --runtime-version 8 \\
                 --functions-version 4 \\
-                --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion} \\
+                --image ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:\$IMAGE_TAG \\
                 --registry-server https://${env.DOCKER_REGISTRY_NAME}.azurecr.io \\
                 --assign-identity
         fi

@@ -5,7 +5,7 @@ pipeline {
 
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev'], description: 'Environment (dev for testing)')
-        string(name: 'DOCKER_IMAGE_TAG', defaultValue: 'test-build-1', description: 'Docker image tag to deploy')
+        // Removed DOCKER_IMAGE_TAG parameter - now auto-generated
     }
 
     environment {
@@ -36,18 +36,22 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "Building Docker image for testing..."
+                    // Generate unique image tag using build number and timestamp
+                    def imageTag = "build-${env.BUILD_NUMBER}-${new Date().format('yyyyMMdd-HHmmss')}"
+                    env.DOCKER_IMAGE_TAG = imageTag
+                    
+                    echo "Building Docker image for testing with unique tag: ${imageTag}"
                     
                     sh """
                         # Build the Docker image with tests (tests always run now)
                         echo "Building Docker image WITH tests..."
-                        docker build -t ${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG} .
+                        docker build -t ${env.DOCKER_IMAGE_NAME}:${imageTag} .
                         
                         # Show what we built
                         docker images | grep ${env.DOCKER_IMAGE_NAME}
                     """
                     
-                    echo "Docker build completed with tag: ${params.DOCKER_IMAGE_TAG}"
+                    echo "Docker build completed with unique tag: ${imageTag}"
                 }
             }
         }
@@ -62,10 +66,10 @@ pipeline {
                         az acr login --name ${env.DOCKER_REGISTRY_NAME}
 
                         # Tag and push the image
-                        docker tag ${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG} ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG}
-                        docker push ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG}
+                        docker tag ${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG} ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG}
+                        docker push ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG}
 
-                        echo "Image pushed to: ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG}"
+                        echo "Image pushed to: ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG}"
                         
                         az logout
                     """
@@ -82,7 +86,7 @@ pipeline {
                     def deploy = load 'deploy.groovy'
                     deploy.call([
                         environment: params.ENVIRONMENT,
-                        buildVersion: params.DOCKER_IMAGE_TAG,
+                        buildVersion: env.DOCKER_IMAGE_TAG,
                         buildNumber: env.BUILD_NUMBER
                     ])
                 }
@@ -193,7 +197,7 @@ pipeline {
                 ===========================================
                 Status: ${currentBuild.result}
                 Environment: ${params.ENVIRONMENT}
-                Image Tag: ${params.DOCKER_IMAGE_TAG}
+                Image Tag: ${env.DOCKER_IMAGE_TAG}
                 Triggered by: ${buildUser}
                 
                 Test URLs:
