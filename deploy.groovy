@@ -200,14 +200,21 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 --resource-group ${resourceGroup} \\
                 --object-id \$FUNCTION_APP_IDENTITY \\
                 --secret-permissions get list || echo "Access policy might already be set, continuing..."
+                
+            # Also grant RBAC role for Key Vault access (modern Azure approach)
+            echo "Granting Key Vault Secrets User role to Function App managed identity..."
+            az role assignment create \\
+                --assignee \$FUNCTION_APP_IDENTITY \\
+                --role "Key Vault Secrets User" \\
+                --scope "/subscriptions/\$AZURE_SUBSCRIPTION_ID/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${keyVaultName}" || echo "Role assignment might already exist, continuing..."
         else
             echo "ERROR: Could not get Function App managed identity. Cannot set Key Vault access policy."
             exit 1
         fi
 
-        # Wait for access policies to propagate
-        echo "Waiting for access policies to propagate..."
-        sleep 10
+        # Wait for access policies and role assignments to propagate
+        echo "Waiting for access policies and role assignments to propagate..."
+        sleep 15
 
         # Store secrets in Key Vault (will update if they already exist)
         echo "Setting datadog-api-key secret in Key Vault..."
