@@ -28,11 +28,11 @@ namespace JobScheduler.FunctionApp.Services
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 level = level.ToString().ToUpper(),
                 message = message,
-                service = "jobscheduler-functions",
+                service = "job-scheduler-functions",
                 source = "azure-functions",
                 hostname = Environment.MachineName,
                 ddsource = "azure-functions",
-                ddtags = $"env:{Environment.GetEnvironmentVariable("DD_ENV") ?? "unknown"},service:jobscheduler-functions,version:{Environment.GetEnvironmentVariable("DD_VERSION") ?? "unknown"},job_name:{jobName}",
+                ddtags = $"env:{Environment.GetEnvironmentVariable("DD_ENV") ?? "unknown"},service:job-scheduler-functions,version:{Environment.GetEnvironmentVariable("DD_VERSION") ?? "unknown"},job_name:{jobName}",
                 logger = new
                 {
                     name = "JobScheduler.JobLogger",
