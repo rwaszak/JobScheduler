@@ -33,24 +33,55 @@ namespace JobScheduler.FunctionApp.Functions
         {
             try
             {
-                _logger.LogInformation("Starting scheduled job: {JobName}", jobName);
+                _logger.LogInformation("=== Starting scheduled job: {JobName} ===", jobName);
+                _logger.LogInformation("JobExecutor is null: {IsNull}", _jobExecutor == null);
+                _logger.LogInformation("ConfigProvider is null: {IsNull}", _configProvider == null);
 
+                if (_jobExecutor == null)
+                {
+                    _logger.LogError("JobExecutor is null - dependency injection failed");
+                    return;
+                }
+
+                if (_configProvider == null)
+                {
+                    _logger.LogError("ConfigProvider is null - dependency injection failed");
+                    return;
+                }
+
+                _logger.LogInformation("Getting job config for: {JobName}", jobName);
                 var config = _configProvider.GetJobConfig(jobName);
+                
+                if (config == null)
+                {
+                    _logger.LogError("Job config is null for job: {JobName}", jobName);
+                    return;
+                }
+
+                _logger.LogInformation("Job config retrieved successfully. Endpoint: {Endpoint}", config.Endpoint);
+                _logger.LogInformation("Executing job with JobExecutor...");
+                
                 var result = await _jobExecutor.ExecuteAsync(config);
 
                 if (result.IsSuccess)
                 {
-                    _logger.LogInformation("Job {JobName} completed successfully in {Duration}ms",
+                    _logger.LogInformation("=== Job {JobName} completed successfully in {Duration}ms ===",
                         jobName, result.Duration.TotalMilliseconds);
                 }
                 else
                 {
-                    _logger.LogError("Job {JobName} failed: {Error}", jobName, result.ErrorMessage);
+                    _logger.LogError("=== Job {JobName} failed: {Error} ===", jobName, result.ErrorMessage);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error in job {JobName}", jobName);
+                _logger.LogError(ex, "=== CRITICAL ERROR in ExecuteJobSafely for job {JobName}: {Error} ===", jobName, ex.Message);
+                _logger.LogError("=== Exception Type: {ExceptionType} ===", ex.GetType().Name);
+                _logger.LogError("=== Stack Trace: {StackTrace} ===", ex.StackTrace);
+                
+                // Also try to log to console in case logger is broken
+                Console.WriteLine($"CRITICAL ERROR in job {jobName}: {ex.Message}");
+                Console.WriteLine($"Exception type: {ex.GetType().Name}");
                 // Don't rethrow - we want the Function to complete successfully even if job fails
             }
         }
