@@ -259,7 +259,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             echo "WARNING: Could not retrieve Docker Registry password"
         fi
 
-        # Update app settings with Key Vault references (keeping existing environment variables)
+        # Update app settings with Key Vault references - Clean configuration post-appsettings.json migration
         az functionapp config appsettings set \\
             --name ${functionAppName} \\
             --resource-group ${resourceGroup} \\
@@ -274,15 +274,8 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
                 DOCKER_REGISTRY_SERVER_USERNAME="${env.DOCKER_REGISTRY_NAME}" \\
                 DOCKER_REGISTRY_SERVER_PASSWORD="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=docker-registry-password)" \\
-                DD_VERSION="${config.buildVersion}" \\
                 JENKINS_BUILD_NUMBER="${config.buildNumber}" \\
-                LAST_JENKINS_DEPLOY="\$(date)" \\
-                AZURE_KEY_VAULT_URL="https://${keyVaultName}.vault.azure.net/" \\
-                KeyVault__VaultUrl="https://${keyVaultName}.vault.azure.net/" \\
-                DD_SITE="us3.datadoghq.com" \\
-                DD_ENV="${config.environment}" \\
-                DD_SERVICE="jobscheduler-functions" \\
-                ENVIRONMENT="${config.environment}"
+                LAST_JENKINS_DEPLOY="\$(date)"
 
         # Restart the function app to pick up new container
         az functionapp restart --name ${functionAppName} --resource-group ${resourceGroup}
@@ -366,7 +359,7 @@ def deployToAzureFunctions(config, resourceGroup, functionAppName, appServicePla
             --functions-version 4 \\
             --deployment-container-image-name ${env.DOCKER_REGISTRY_NAME}.azurecr.io/${env.DOCKER_IMAGE_NAME}:${config.buildVersion}
 
-        # Configure Function App settings
+        # Configure Function App settings - Clean configuration post-appsettings.json migration
         az functionapp config appsettings set \\
             --name ${functionAppName} \\
             --resource-group ${resourceGroup} \\
@@ -376,13 +369,7 @@ def deployToAzureFunctions(config, resourceGroup, functionAppName, appServicePla
                 FUNCTION_APP_EDIT_MODE="readwrite" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="${AZURE_STORAGE_CONNECTION_STRING}" \\
-                DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
-                KeyVault__VaultUrl="${keyVaultUrl}" \\
-                DD_SITE="us3.datadoghq.com" \\
-                DD_ENV="${config.environment}" \\
-                DD_SERVICE="jobscheduler-functions" \\
-                DD_VERSION="${config.buildVersion}" \\
-                ENVIRONMENT="${config.environment}"
+                DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io"
 
         # Enable container registry authentication
         az functionapp config container set \\
@@ -437,11 +424,6 @@ def deployToContainerApps(config, resourceGroup, containerAppName, containerAppE
                 AzureFunctionsJobHost__Logging__Console__IsEnabled=true \\
                 AzureWebJobsStorage=secretref:azure-storage-connection-string \\
                 DD_API_KEY=secretref:dd-api-key \\
-                DD_SITE=us3.datadoghq.com \\
-                DD_ENV=${config.environment} \\
-                DD_SERVICE=jobscheduler-functions \\
-                DD_VERSION=${config.buildVersion} \\
-                ENVIRONMENT=${config.environment} \\
             --secrets \\
                 azure-storage-connection-string="${AZURE_STORAGE_CONNECTION_STRING}" \\
                 dd-api-key="${DD_API_KEY}" \\
