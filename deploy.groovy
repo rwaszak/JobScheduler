@@ -245,6 +245,19 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         else
             echo "WARNING: Could not retrieve Application Insights connection string"
         fi
+        
+        # Get Docker Registry password and store in Key Vault
+        echo "Setting docker-registry-password secret in Key Vault..."
+        DOCKER_REGISTRY_PASSWORD=\$(az acr credential show --name ${env.DOCKER_REGISTRY_NAME} --query "passwords[0].value" -o tsv)
+        if [ -n "\$DOCKER_REGISTRY_PASSWORD" ] && [ "\$DOCKER_REGISTRY_PASSWORD" != "null" ]; then
+            az keyvault secret set --vault-name ${keyVaultName} --name "docker-registry-password" --value "\$DOCKER_REGISTRY_PASSWORD" || {
+                echo "Failed to set docker-registry-password, retrying in 30 seconds..."
+                sleep 30
+                az keyvault secret set --vault-name ${keyVaultName} --name "docker-registry-password" --value "\$DOCKER_REGISTRY_PASSWORD"
+            }
+        else
+            echo "WARNING: Could not retrieve Docker Registry password"
+        fi
 
         # Update app settings with Key Vault references (keeping existing environment variables)
         az functionapp config appsettings set \\
@@ -283,6 +296,15 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         az keyvault secret show --vault-name ${keyVaultName} --name "azure-webjobs-storage" --query "value" -o tsv > /dev/null || echo "WARNING: azure-webjobs-storage secret not found in Key Vault"
         az keyvault secret show --vault-name ${keyVaultName} --name "app-insights-connection" --query "value" -o tsv > /dev/null || echo "WARNING: app-insights-connection secret not found in Key Vault"
         az keyvault secret show --vault-name ${keyVaultName} --name "datadog-api-key" --query "value" -o tsv > /dev/null || echo "WARNING: datadog-api-key secret not found in Key Vault"
+        az keyvault secret show --vault-name ${keyVaultName} --name "docker-registry-password" --query "value" -o tsv > /dev/null || echo "WARNING: docker-registry-password secret not found in Key Vault"
+        
+        # Additional container diagnostics
+        echo "=== Container Configuration Diagnostics ==="
+        echo "Checking Function App container configuration..."
+        az functionapp config container show --name ${functionAppName} --resource-group ${resourceGroup} || echo "Could not retrieve container config"
+        
+        echo "Checking Function App runtime status..."
+        az functionapp show --name ${functionAppName} --resource-group ${resourceGroup} --query "{name:name,state:state,kind:kind,repositorySiteName:repositorySiteName}" -o table
 
         # Check Function App status before triggering sync
         echo "Checking Function App status..."
