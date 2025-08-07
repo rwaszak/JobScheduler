@@ -29,7 +29,8 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             _manualTriggerFunctions = new ManualTriggerFunctions(
                 _mockJobExecutor.Object,
                 _mockConfigProvider.Object,
-                _testLogger);
+                _testLogger,
+                TestAppSettings.CreateDefault());
         }
 
         [Fact]

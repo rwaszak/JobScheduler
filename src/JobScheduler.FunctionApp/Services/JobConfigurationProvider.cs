@@ -1,5 +1,6 @@
 ﻿using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
+using Microsoft.Extensions.Options;
 using JobScheduler.FunctionApp.Core.Models;
 
 namespace JobScheduler.FunctionApp.Services
@@ -7,9 +8,11 @@ namespace JobScheduler.FunctionApp.Services
     public class EnvironmentJobConfigurationProvider : IJobConfigurationProvider
     {
         private readonly Dictionary<string, JobConfig> _jobConfigs;
+        private readonly AppSettings _appSettings;
 
-        public EnvironmentJobConfigurationProvider()
+        public EnvironmentJobConfigurationProvider(IOptions<AppSettings> appSettings)
         {
+            _appSettings = appSettings.Value;
             _jobConfigs = LoadJobConfigurationsFromEnvironment();
         }
 
@@ -32,7 +35,7 @@ namespace JobScheduler.FunctionApp.Services
             configs[JobNames.ContainerAppHealth] = new JobConfig
             {
                 JobName = JobNames.ContainerAppHealth,
-                Endpoint = Environment.GetEnvironmentVariable("INTEGRATION_LAYER_DEV_HEALTH_ENDPOINT") ?? "",
+                Endpoint = _appSettings.IntegrationLayerDevHealthEndpoint ?? "",
                 HttpMethod = HttpMethod.Get,
                 AuthType = AuthenticationType.None, // Your current endpoint doesn't need auth
                 TimeoutSeconds = 30,
@@ -57,5 +60,8 @@ namespace JobScheduler.FunctionApp.Services
     // Simple alias for testing purposes
     public class JobConfigurationProvider : EnvironmentJobConfigurationProvider
     {
+        public JobConfigurationProvider(IOptions<AppSettings> appSettings) : base(appSettings)
+        {
+        }
     }
 }

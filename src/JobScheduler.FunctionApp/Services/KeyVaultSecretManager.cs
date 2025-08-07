@@ -1,7 +1,9 @@
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JobScheduler.FunctionApp.Services;
 
@@ -14,13 +16,15 @@ public class KeyVaultSecretManager : ISecretManager
     private readonly SecretClient? _secretClient;
     private readonly ILogger<KeyVaultSecretManager> _logger;
     private readonly bool _useEnvironmentFallback;
+    private readonly AppSettings _appSettings;
 
-    public KeyVaultSecretManager(ILogger<KeyVaultSecretManager> logger)
+    public KeyVaultSecretManager(ILogger<KeyVaultSecretManager> logger, IOptions<AppSettings> appSettings)
     {
         _logger = logger;
+        _appSettings = appSettings.Value;
         
-        // Get Key Vault URL from environment variables
-        var keyVaultUrl = Environment.GetEnvironmentVariable("AZURE_KEY_VAULT_URL");
+        // Get Key Vault URL from configuration
+        var keyVaultUrl = _appSettings.KeyVaultUrl;
         
         if (!string.IsNullOrEmpty(keyVaultUrl))
         {
@@ -43,7 +47,7 @@ public class KeyVaultSecretManager : ISecretManager
         }
         else
         {
-            _logger.LogWarning("AZURE_KEY_VAULT_URL not configured. Using environment variable fallback for local development.");
+            _logger.LogWarning("KeyVaultUrl not configured in AppSettings. Using environment variable fallback for local development.");
             _useEnvironmentFallback = true;
         }
     }

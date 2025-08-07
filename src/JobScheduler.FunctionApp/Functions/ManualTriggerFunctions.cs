@@ -1,8 +1,10 @@
 using System.Text.Json;
+using JobScheduler.FunctionApp.Configuration;
 using JobScheduler.FunctionApp.Core.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JobScheduler.FunctionApp.Functions
 {
@@ -11,15 +13,18 @@ namespace JobScheduler.FunctionApp.Functions
         private readonly IJobExecutor _jobExecutor;
         private readonly IJobConfigurationProvider _configProvider;
         private readonly ILogger<ManualTriggerFunctions> _logger;
+        private readonly AppSettings _appSettings;
 
         public ManualTriggerFunctions(
             IJobExecutor jobExecutor,
             IJobConfigurationProvider configProvider,
-            ILogger<ManualTriggerFunctions> logger)
+            ILogger<ManualTriggerFunctions> logger,
+            IOptions<AppSettings> appSettings)
         {
             _jobExecutor = jobExecutor;
             _configProvider = configProvider;
             _logger = logger;
+            _appSettings = appSettings.Value;
         }
 
         // Manual job trigger: POST /api/jobs/{jobName}/trigger
@@ -116,9 +121,9 @@ namespace JobScheduler.FunctionApp.Functions
                 {
                     Status = "Healthy",
                     Timestamp = DateTime.UtcNow,
-                    Version = "1.0.0",
+                    Version = _appSettings.Version,
                     JobCount = jobCount,
-                    Environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "unknown"
+                    Environment = _appSettings.Environment
                 };
 
                 await response.WriteStringAsync(JsonSerializer.Serialize(healthData, new JsonSerializerOptions { WriteIndented = true }));
@@ -134,7 +139,7 @@ namespace JobScheduler.FunctionApp.Functions
                     Status = "Unhealthy",
                     Timestamp = DateTime.UtcNow,
                     Error = ex.Message,
-                    Environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "unknown"
+                    Environment = _appSettings.Environment
                 };
                 
                 await response.WriteStringAsync(JsonSerializer.Serialize(errorData, new JsonSerializerOptions { WriteIndented = true }));

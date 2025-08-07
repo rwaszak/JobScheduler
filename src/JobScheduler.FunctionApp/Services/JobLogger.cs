@@ -12,13 +12,15 @@ namespace JobScheduler.FunctionApp.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ISecretManager _secretManager;
         private readonly LoggingOptions _loggingOptions;
+        private readonly AppSettings _appSettings;
 
-        public JobLogger(ILogger<JobLogger> logger, IHttpClientFactory httpClientFactory, ISecretManager secretManager, IOptions<JobSchedulerOptions> options)
+        public JobLogger(ILogger<JobLogger> logger, IHttpClientFactory httpClientFactory, ISecretManager secretManager, IOptions<JobSchedulerOptions> options, IOptions<AppSettings> appSettings)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _secretManager = secretManager;
             _loggingOptions = options.Value.Logging;
+            _appSettings = appSettings.Value;
         }
 
         public async Task LogAsync(LogLevel level, string jobName, string message, object? metadata = null)
@@ -28,11 +30,11 @@ namespace JobScheduler.FunctionApp.Services
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 level = level.ToString().ToUpper(),
                 message = message,
-                service = "job-scheduler-functions",
+                service = _appSettings.ServiceName,
                 source = "azure-functions",
                 hostname = Environment.MachineName,
                 ddsource = "azure-functions",
-                ddtags = $"env:{Environment.GetEnvironmentVariable("DD_ENV") ?? "unknown"},service:job-scheduler-functions,version:{Environment.GetEnvironmentVariable("DD_VERSION") ?? "unknown"},job_name:{jobName}",
+                ddtags = $"env:{_appSettings.DatadogEnvironment},service:{_appSettings.ServiceName},version:{_appSettings.Version},job_name:{jobName}",
                 logger = new
                 {
                     name = "JobScheduler.JobLogger",

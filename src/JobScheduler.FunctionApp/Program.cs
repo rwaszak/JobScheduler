@@ -27,6 +27,9 @@ internal class Program
         builder.Services.AddHttpMethodTypeConverter();
 
         // Configuration
+        builder.Services.Configure<AppSettings>(
+            builder.Configuration.GetSection(AppSettings.SectionName));
+            
         builder.Services.Configure<JobSchedulerOptions>(
             builder.Configuration.GetSection(JobSchedulerOptions.SectionName));
 

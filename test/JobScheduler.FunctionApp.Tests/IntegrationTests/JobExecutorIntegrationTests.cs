@@ -28,8 +28,9 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             _secretManager = new EnvironmentSecretManager();
             
             var testOptions = TestOptions.CreateDefault();
+            var testAppSettings = TestAppSettings.CreateDefault();
             var loggerProvider = new TestLoggerProvider<JobLogger>();
-            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, _secretManager, testOptions);
+            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, _secretManager, testOptions, testAppSettings);
             
             var metricsLoggerProvider = new TestLoggerProvider<JobMetrics>();
             _jobMetrics = new JobMetrics(metricsLoggerProvider, testOptions);

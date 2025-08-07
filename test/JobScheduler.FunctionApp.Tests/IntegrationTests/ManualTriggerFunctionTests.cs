@@ -26,7 +26,8 @@ public class ManualTriggerFunctionTests
         _manualTriggerFunctions = new ManualTriggerFunctions(
             _mockJobExecutor.Object,
             _mockConfigProvider.Object,
-            _testLogger);
+            _testLogger,
+            TestAppSettings.CreateDefault());
     }
 
     [Fact]
@@ -36,7 +37,8 @@ public class ManualTriggerFunctionTests
         var functions = new ManualTriggerFunctions(
             _mockJobExecutor.Object,
             _mockConfigProvider.Object,
-            _testLogger);
+            _testLogger,
+            TestAppSettings.CreateDefault());
 
         // Assert
         functions.Should().NotBeNull();
