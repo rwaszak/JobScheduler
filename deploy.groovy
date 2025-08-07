@@ -71,13 +71,13 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         # Create Key Vault for secrets management (always ensure it exists)
         echo "Creating/verifying Key Vault: ${keyVaultName}"
         
-        # Create Key Vault with RBAC enabled (modern approach)
+        # Create Key Vault with access policies (not RBAC - Jenkins doesn't have role assignment permissions)
         az keyvault create \\
             --name ${keyVaultName} \\
             --resource-group ${resourceGroup} \\
             --location centralus \\
             --sku standard \\
-            --enable-rbac-authorization true \\
+            --enable-rbac-authorization false \\
             --default-action Allow \\
             --bypass AzureServices || echo "Key Vault might already exist, continuing..."
         
@@ -93,12 +93,13 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             az keyvault show --name ${keyVaultName} --resource-group ${resourceGroup}
         }
 
-        # Grant Jenkins service principal Key Vault Administrator role for deployment operations
-        echo "Granting Key Vault Administrator role to Jenkins service principal..."
-        az role assignment create \\
-            --assignee \$AZURE_CLIENT_ID \\
-            --role "Key Vault Administrator" \\
-            --scope "/subscriptions/\$AZURE_SUBSCRIPTION_ID/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${keyVaultName}" || echo "Role assignment might already exist, continuing..."
+        # Grant Jenkins service principal access policy for deployment operations
+        echo "Setting access policy for Jenkins service principal..."
+        az keyvault set-policy \\
+            --name ${keyVaultName} \\
+            --resource-group ${resourceGroup} \\
+            --spn \$AZURE_CLIENT_ID \\
+            --secret-permissions get set list delete || echo "Access policy might already be set, continuing..."
 
         # Check if the Function App exists (proper Jenkins shell syntax)
         set +e  # Don't fail on error for the check
@@ -177,21 +178,22 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         
         echo "Function App Managed Identity: \$FUNCTION_APP_IDENTITY"
 
-        # Grant RBAC roles to Function App's managed identity for runtime operations
-        echo "Granting Key Vault Secrets User role to Function App managed identity..."
+        # Grant Function App managed identity access policy for runtime operations
+        echo "Setting access policy for Function App managed identity..."
         if [ -n "\$FUNCTION_APP_IDENTITY" ] && [ "\$FUNCTION_APP_IDENTITY" != "None" ]; then
-            az role assignment create \\
-                --assignee \$FUNCTION_APP_IDENTITY \\
-                --role "Key Vault Secrets User" \\
-                --scope "/subscriptions/\$AZURE_SUBSCRIPTION_ID/resourceGroups/${resourceGroup}/providers/Microsoft.KeyVault/vaults/${keyVaultName}" || echo "Role assignment might already exist, continuing..."
+            az keyvault set-policy \\
+                --name ${keyVaultName} \\
+                --resource-group ${resourceGroup} \\
+                --object-id \$FUNCTION_APP_IDENTITY \\
+                --secret-permissions get list || echo "Access policy might already be set, continuing..."
         else
             echo "ERROR: Could not get Function App managed identity. Cannot set Key Vault permissions."
             exit 1
         fi
 
-        # Wait for role assignments to propagate
-        echo "Waiting for role assignments to propagate..."
-        sleep 20
+        # Wait for access policies to propagate
+        echo "Waiting for access policies to propagate..."
+        sleep 15
 
         # Store secrets in Key Vault (will update if they already exist)
         echo "Setting datadog-api-key secret in Key Vault..."
