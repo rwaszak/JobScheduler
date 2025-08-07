@@ -97,13 +97,13 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         
         # Wait for Key Vault to be fully available
         echo "Waiting for Key Vault to be available..."
-        sleep 30
+        sleep 15
         
         # Verify Key Vault accessibility
         echo "Testing Key Vault connectivity..."
         az keyvault show --name ${keyVaultName} --resource-group ${resourceGroup} || {
             echo "Key Vault not accessible, waiting longer..."
-            sleep 60
+            sleep 30
             az keyvault show --name ${keyVaultName} --resource-group ${resourceGroup}
         }
 
@@ -186,7 +186,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         if [ -z "\$FUNCTION_APP_IDENTITY" ] || [ "\$FUNCTION_APP_IDENTITY" = "None" ]; then
             echo "No managed identity found, assigning one..."
             az functionapp identity assign --name ${functionAppName} --resource-group ${resourceGroup}
-            sleep 10  # Wait for identity assignment to complete
+            sleep 5  # Wait for identity assignment to complete
             FUNCTION_APP_IDENTITY=\$(az functionapp identity show --name ${functionAppName} --resource-group ${resourceGroup} --query principalId -o tsv)
         fi
         
@@ -207,13 +207,13 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
 
         # Wait for access policies to propagate
         echo "Waiting for access policies to propagate..."
-        sleep 15
+        sleep 10
 
         # Store secrets in Key Vault (will update if they already exist)
         echo "Setting datadog-api-key secret in Key Vault..."
         az keyvault secret set --vault-name ${keyVaultName} --name "datadog-api-key" --value "${DD_API_KEY}" || {
-            echo "Failed to set datadog-api-key, retrying in 30 seconds..."
-            sleep 30
+            echo "Failed to set datadog-api-key, retrying in 15 seconds..."
+            sleep 15
             az keyvault secret set --vault-name ${keyVaultName} --name "datadog-api-key" --value "${DD_API_KEY}"
         }
         
@@ -221,8 +221,8 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         echo "Setting azure-webjobs-storage secret in Key Vault..."
         STORAGE_CONN_STRING=\$(az storage account show-connection-string --name jobschedulerteststorage --resource-group ${resourceGroup} --query connectionString -o tsv)
         az keyvault secret set --vault-name ${keyVaultName} --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING" || {
-            echo "Failed to set azure-webjobs-storage, retrying in 30 seconds..."
-            sleep 30
+            echo "Failed to set azure-webjobs-storage, retrying in 15 seconds..."
+            sleep 15
             az keyvault secret set --vault-name ${keyVaultName} --name "azure-webjobs-storage" --value "\$STORAGE_CONN_STRING"
         }
         
@@ -246,8 +246,8 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         APP_INSIGHTS_CONN=\$(az monitor app-insights component show --app \$APP_INSIGHTS_NAME --resource-group ${resourceGroup} --query connectionString -o tsv)
         if [ -n "\$APP_INSIGHTS_CONN" ] && [ "\$APP_INSIGHTS_CONN" != "null" ]; then
             az keyvault secret set --vault-name ${keyVaultName} --name "app-insights-connection" --value "\$APP_INSIGHTS_CONN" || {
-                echo "Failed to set app-insights-connection, retrying in 30 seconds..."
-                sleep 30
+                echo "Failed to set app-insights-connection, retrying in 15 seconds..."
+                sleep 15
                 az keyvault secret set --vault-name ${keyVaultName} --name "app-insights-connection" --value "\$APP_INSIGHTS_CONN"
             }
         else
@@ -259,8 +259,8 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         DOCKER_REGISTRY_PASSWORD=\$(az acr credential show --name ${env.DOCKER_REGISTRY_NAME} --query "passwords[0].value" -o tsv)
         if [ -n "\$DOCKER_REGISTRY_PASSWORD" ] && [ "\$DOCKER_REGISTRY_PASSWORD" != "null" ]; then
             az keyvault secret set --vault-name ${keyVaultName} --name "docker-registry-password" --value "\$DOCKER_REGISTRY_PASSWORD" || {
-                echo "Failed to set docker-registry-password, retrying in 30 seconds..."
-                sleep 30
+                echo "Failed to set docker-registry-password, retrying in 15 seconds..."
+                sleep 15
                 az keyvault secret set --vault-name ${keyVaultName} --name "docker-registry-password" --value "\$DOCKER_REGISTRY_PASSWORD"
             }
         else
@@ -292,7 +292,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         
         # Wait for restart to complete
         echo "Waiting for Function App to restart..."
-        sleep 30
+        sleep 15
 
         # Validate Key Vault references before sync
         echo "Validating Key Vault references..."
