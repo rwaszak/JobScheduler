@@ -270,7 +270,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-webjobs-storage)" \\
                 APPLICATIONINSIGHTS_CONNECTION_STRING="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=app-insights-connection)" \\
-                JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=DATADOG_API_KEY)" \\
+                JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
                 DOCKER_REGISTRY_SERVER_USERNAME="${env.DOCKER_REGISTRY_NAME}" \\
                 DOCKER_REGISTRY_SERVER_PASSWORD="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=docker-registry-password)" \\
