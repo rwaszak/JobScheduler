@@ -6,8 +6,6 @@ pipeline {
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev'], description: 'Environment (dev for testing)')
         string(name: 'DOCKER_IMAGE_TAG', defaultValue: 'test-build-1', description: 'Docker image tag to deploy')
-        booleanParam(name: 'SKIP_BUILD', defaultValue: false, description: 'Skip build and just deploy existing image')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip running tests during Docker build (for infrastructure testing)')
     }
 
     environment {
@@ -36,24 +34,14 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            when {
-                not { 
-                    equals expected: true, actual: params.SKIP_BUILD
-                }
-            }
             steps {
                 script {
                     echo "Building Docker image for testing..."
                     
                     sh """
-                        # Build the Docker image (conditionally skip tests)
-                        if [ "${params.SKIP_TESTS}" = "true" ]; then
-                            echo "Building Docker image WITHOUT running tests..."
-                            docker build -t ${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG} --build-arg BUILD_CONFIGURATION=Release .
-                        else
-                            echo "Building Docker image WITH tests..."
-                            docker build -t ${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG} .
-                        fi
+                        # Build the Docker image with tests (tests always run now)
+                        echo "Building Docker image WITH tests..."
+                        docker build -t ${env.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG} .
                         
                         # Show what we built
                         docker images | grep ${env.DOCKER_IMAGE_NAME}
@@ -65,11 +53,6 @@ pipeline {
         }
 
         stage('Push to Registry') {
-            when {
-                not { 
-                    equals expected: true, actual: params.SKIP_BUILD
-                }
-            }
             steps {
                 withCredentials([azureServicePrincipal('jenkins-service-principal-2')]) {
                     sh """
