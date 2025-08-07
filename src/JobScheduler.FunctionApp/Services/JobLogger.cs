@@ -58,11 +58,11 @@ namespace JobScheduler.FunctionApp.Services
                 string? datadogApiKey = null;
                 try
                 {
-                    datadogApiKey = await _secretManager.GetSecretAsync("DATADOG_API_KEY");
+                    datadogApiKey = await _secretManager.GetSecretAsync("datadog-api-key");
                 }
                 catch (InvalidOperationException)
                 {
-                    _logger.LogWarning("Datadog API key 'DATADOG_API_KEY' not found in secret store - skipping Datadog logging");
+                    _logger.LogWarning("Datadog API key 'datadog-api-key' not found in secret store - skipping Datadog logging");
                     return;
                 }
 
