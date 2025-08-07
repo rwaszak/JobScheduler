@@ -279,6 +279,25 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-webjobs-storage)" \\
                 APPLICATIONINSIGHTS_CONNECTION_STRING="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=app-insights-connection)" \\
                 JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
+                JobScheduler__Jobs__containerAppHealth__JobName="containerAppHealth" \\
+                JobScheduler__Jobs__containerAppHealth__Endpoint="https://int-svc-be-capp-dev.whitesky-4effbccc.centralus.azurecontainerapps.io/health" \\
+                JobScheduler__Jobs__containerAppHealth__HttpMethod="GET" \\
+                JobScheduler__Jobs__containerAppHealth__AuthType="none" \\
+                JobScheduler__Jobs__containerAppHealth__TimeoutSeconds="30" \\
+                JobScheduler__Jobs__containerAppHealth__RetryPolicy__MaxAttempts="3" \\
+                JobScheduler__Jobs__containerAppHealth__RetryPolicy__BaseDelayMs="1000" \\
+                JobScheduler__Jobs__containerAppHealth__RetryPolicy__BackoffMultiplier="2.0" \\
+                JobScheduler__Jobs__containerAppHealth__RetryPolicy__MaxDelayMs="30000" \\
+                JobScheduler__Jobs__containerAppHealth__Tags__category="health-check" \\
+                JobScheduler__Jobs__containerAppHealth__Tags__priority="low" \\
+                JobScheduler__Jobs__containerAppHealth__Tags__team="platform" \\
+                JobScheduler__Logging__EnableStructuredLogging="true" \\
+                JobScheduler__Logging__IncludeMetadata="true" \\
+                JobScheduler__Logging__LogLevel="Information" \\
+                JobScheduler__Logging__DatadogSite="us3.datadoghq.com" \\
+                JobScheduler__Metrics__EnableMetrics="true" \\
+                JobScheduler__Metrics__EnableCustomCounters="true" \\
+                JobScheduler__Metrics__MetricsFlushIntervalSeconds="60" \\
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
                 DOCKER_REGISTRY_SERVER_USERNAME="${env.DOCKER_REGISTRY_NAME}" \\
                 DOCKER_REGISTRY_SERVER_PASSWORD="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=docker-registry-password)" \\
