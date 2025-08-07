@@ -89,21 +89,88 @@ pipeline {
             }
         }
 
+        stage('Check Function App Status') {
+            steps {
+                script {
+                    echo "Checking Function App deployment status..."
+                    
+                    withCredentials([azureServicePrincipal('jenkins-service-principal-2')]) {
+                        sh """
+                            # Login to Azure
+                            az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
+                            az account set --subscription \$AZURE_SUBSCRIPTION_ID
+                            
+                            echo "=== Function App Status ==="
+                            az functionapp show --name job-scheduler-poc-container --resource-group continuum_scheduled_jobs --query "{name:name,state:state,hostNames:hostNames[0],kind:kind}" -o table
+                            
+                            echo "=== Function App Logs (last 50 lines) ==="
+                            az functionapp log tail --name job-scheduler-poc-container --resource-group continuum_scheduled_jobs --provider filesystem || echo "Could not retrieve logs"
+                            
+                            echo "=== Container Status ==="
+                            az functionapp config container show --name job-scheduler-poc-container --resource-group continuum_scheduled_jobs || echo "Could not retrieve container config"
+                            
+                            az logout
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Test Deployment') {
             steps {
                 script {
                     echo "Testing the deployed Functions app..."
                     
-                    sleep 30 // Give the app time to restart
+                    echo "Waiting for Function App to fully start up..."
+                    sleep 60 // Increased wait time for container startup
                     
                     sh """
-                        echo "Testing endpoints..."
+                        echo "Testing endpoints with retry logic..."
                         
-                        # Test health endpoint
-                        curl -f https://job-scheduler-poc-container.azurewebsites.net/api/health || echo "Health endpoint failed"
+                        # Function to test endpoint with retries
+                        test_endpoint() {
+                            local url=\$1
+                            local name=\$2
+                            local max_attempts=5
+                            local wait_time=15
+                            
+                            for i in \$(seq 1 \$max_attempts); do
+                                echo "Attempt \$i/\$max_attempts for \$name endpoint..."
+                                if curl -f -m 30 "\$url"; then
+                                    echo "\$name endpoint is working!"
+                                    return 0
+                                else
+                                    echo "\$name endpoint failed (attempt \$i/\$max_attempts)"
+                                    if [ \$i -lt \$max_attempts ]; then
+                                        echo "Waiting \$wait_time seconds before retry..."
+                                        sleep \$wait_time
+                                    fi
+                                fi
+                            done
+                            echo "❌ \$name endpoint failed after \$max_attempts attempts"
+                            return 1
+                        }
                         
-                        # Test jobs endpoint  
-                        curl -f https://job-scheduler-poc-container.azurewebsites.net/api/jobs || echo "Jobs endpoint failed"
+                        # Test health endpoint with retries
+                        test_endpoint "https://job-scheduler-poc-container.azurewebsites.net/api/health" "Health"
+                        health_status=\$?
+                        
+                        # Test jobs endpoint with retries  
+                        test_endpoint "https://job-scheduler-poc-container.azurewebsites.net/api/jobs" "Jobs"
+                        jobs_status=\$?
+                        
+                        echo "=== Deployment Test Results ==="
+                        if [ \$health_status -eq 0 ]; then
+                            echo "✅ Health endpoint: PASSED"
+                        else
+                            echo "❌ Health endpoint: FAILED"
+                        fi
+                        
+                        if [ \$jobs_status -eq 0 ]; then
+                            echo "✅ Jobs endpoint: PASSED"
+                        else
+                            echo "❌ Jobs endpoint: FAILED"
+                        fi
                         
                         echo "Deployment test completed!"
                     """
