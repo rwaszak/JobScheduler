@@ -20,7 +20,8 @@ internal class Program
         // Add appsettings.json for application configuration
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-        // Add environment variables to override appsettings values
+        // Add environment variables - Required for Azure Functions runtime and secrets
+        // Allows overriding appsettings.json values in specific deployment scenarios
         builder.Configuration.AddEnvironmentVariables();
 
         // Enable HttpMethod string-to-object conversion for configuration binding

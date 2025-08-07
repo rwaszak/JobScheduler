@@ -223,16 +223,27 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             --name ${functionAppName} \\
             --resource-group ${resourceGroup} \\
             --settings \\
-                DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
-                DD_VERSION="${config.buildVersion}" \\
-                LAST_JENKINS_DEPLOY="\$(date)" \\
-                JENKINS_BUILD_NUMBER="${config.buildNumber}" \\
+                # Azure Functions Runtime (Required)
+                FUNCTIONS_EXTENSION_VERSION="~4" \\
                 FUNCTIONS_WORKER_RUNTIME="dotnet-isolated" \\
+                FUNCTION_APP_EDIT_MODE="readwrite" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
+                # Secrets from Key Vault
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-webjobs-storage)" \\
+                APPLICATIONINSIGHTS_CONNECTION_STRING="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=app-insights-connection)" \\
+                JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
+                # Container Registry (Deployment)
+                DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
+                DOCKER_REGISTRY_SERVER_USERNAME="${env.DOCKER_REGISTRY_NAME}" \\
+                DOCKER_REGISTRY_SERVER_PASSWORD="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=docker-registry-password)" \\
+                # Build/Deploy Metadata
+                DD_VERSION="${config.buildVersion}" \\
+                JENKINS_BUILD_NUMBER="${config.buildNumber}" \\
+                LAST_JENKINS_DEPLOY="\$(date)" \\
+                # Key Vault URL (Temporary - will be removed after appsettings.json migration)
                 AZURE_KEY_VAULT_URL="https://${keyVaultName}.vault.azure.net/" \\
                 KeyVault__VaultUrl="https://${keyVaultName}.vault.azure.net/" \\
-                JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
+                # Datadog Configuration (Temporary - will be removed after appsettings.json migration)
                 DD_SITE="us3.datadoghq.com" \\
                 DD_ENV="${config.environment}" \\
                 DD_SERVICE="jobscheduler-functions" \\
@@ -293,11 +304,18 @@ def deployToAzureFunctions(config, resourceGroup, functionAppName, appServicePla
             --name ${functionAppName} \\
             --resource-group ${resourceGroup} \\
             --settings \\
-                AzureWebJobsStorage="${AZURE_STORAGE_CONNECTION_STRING}" \\
+                # Azure Functions Runtime (Required)
+                FUNCTIONS_EXTENSION_VERSION="~4" \\
                 FUNCTIONS_WORKER_RUNTIME="dotnet-isolated" \\
+                FUNCTION_APP_EDIT_MODE="readwrite" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
+                # Secrets (Production deployment without Key Vault references)
+                AzureWebJobsStorage="${AZURE_STORAGE_CONNECTION_STRING}" \\
+                # Container Registry (Deployment)
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
+                # Configuration
                 KeyVault__VaultUrl="${keyVaultUrl}" \\
+                # Datadog Configuration (Temporary - will be removed after appsettings.json migration)
                 DD_SITE="us3.datadoghq.com" \\
                 DD_ENV="${config.environment}" \\
                 DD_SERVICE="jobscheduler-functions" \\
@@ -349,12 +367,18 @@ def deployToContainerApps(config, resourceGroup, containerAppName, containerAppE
             --max-replicas 3 \\
             --registry-server ${env.DOCKER_REGISTRY_NAME}.azurecr.io \\
             --env-vars \\
-                AzureWebJobsStorage=secretref:azure-storage-connection-string \\
+                # Azure Functions Runtime (Required)
+                FUNCTIONS_EXTENSION_VERSION=~4 \\
                 FUNCTIONS_WORKER_RUNTIME=dotnet-isolated \\
+                FUNCTION_APP_EDIT_MODE=readwrite \\
+                # Azure Functions Container Apps specific
                 WEBSITES_PORT=${applicationPort} \\
                 AzureWebJobsScriptRoot=/home/site/wwwroot \\
                 AzureFunctionsJobHost__Logging__Console__IsEnabled=true \\
+                # Secrets from Container Apps secrets
+                AzureWebJobsStorage=secretref:azure-storage-connection-string \\
                 DD_API_KEY=secretref:dd-api-key \\
+                # Datadog Configuration (Temporary - will be removed after appsettings.json migration)
                 DD_SITE=us3.datadoghq.com \\
                 DD_ENV=${config.environment} \\
                 DD_SERVICE=jobscheduler-functions \\
