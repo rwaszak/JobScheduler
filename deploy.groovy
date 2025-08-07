@@ -251,7 +251,10 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
             echo "WARNING: Could not retrieve Docker Registry password"
         fi
 
-        # Update app settings with Key Vault references - Clean configuration post-appsettings.json migration
+        # Get Application Insights connection string for hardcoded testing
+        APP_INSIGHTS_CONN=\$(az monitor app-insights component show --app jobscheduler-poc-insights --resource-group ${resourceGroup} --query connectionString -o tsv)
+        
+        # Update app settings with hardcoded values for testing - bypassing Key Vault temporarily
         az functionapp config appsettings set \\
             --name ${functionAppName} \\
             --resource-group ${resourceGroup} \\
@@ -261,8 +264,8 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 FUNCTION_APP_EDIT_MODE="readwrite" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-webjobs-storage)" \\
-                APPLICATIONINSIGHTS_CONNECTION_STRING="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=app-insights-connection)" \\
-                JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
+                APPLICATIONINSIGHTS_CONNECTION_STRING="\$APP_INSIGHTS_CONN" \\
+                JobScheduler__Logging__DatadogApiKey="test-hardcoded-key-for-debugging" \\
                 ASPNETCORE_ENVIRONMENT="dev" \\
                 DOTNET_ENVIRONMENT="dev" \\
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
