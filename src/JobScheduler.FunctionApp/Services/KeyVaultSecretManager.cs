@@ -69,8 +69,8 @@ public class KeyVaultSecretManager : ISecretManager
 
         try
         {
-            // Convert secret name to Key Vault friendly format (replace underscores with hyphens)
-            var keyVaultSecretName = secretName.Replace("_", "-").ToLowerInvariant();
+            // Map environment variable names to Key Vault secret names
+            var keyVaultSecretName = MapToKeyVaultSecretName(secretName);
             
             _logger.LogDebug("Retrieving secret '{SecretName}' (Key Vault name: '{KeyVaultName}') from Azure Key Vault", 
                 secretName, keyVaultSecretName);
@@ -94,5 +94,30 @@ public class KeyVaultSecretManager : ISecretManager
             _logger.LogError(ex, "Failed to retrieve secret '{SecretName}' from Azure Key Vault", secretName);
             throw new InvalidOperationException($"Failed to retrieve secret '{secretName}' from Azure Key Vault: {ex.Message}", ex);
         }
+    }
+    
+    /// <summary>
+    /// Maps environment variable names to Key Vault secret names.
+    /// Handles special cases and naming conventions.
+    /// </summary>
+    private static string MapToKeyVaultSecretName(string environmentVariableName)
+    {
+        // Handle specific known mappings first
+        var knownMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "APPLICATIONINSIGHTS_CONNECTION_STRING", "applicationinsights-connection-string" },
+            { "AzureWebJobsStorage", "azure-webjobs-storage" },
+            { "DD_API_KEY", "datadog-api-key" },
+            { "DATADOG_API_KEY", "datadog-api-key" },
+            { "DOCKER_REGISTRY_SERVER_PASSWORD", "docker-registry-password" }
+        };
+        
+        if (knownMappings.TryGetValue(environmentVariableName, out var mappedName))
+        {
+            return mappedName;
+        }
+        
+        // Default transformation: replace underscores with hyphens and convert to lowercase
+        return environmentVariableName.Replace("_", "-").ToLowerInvariant();
     }
 }

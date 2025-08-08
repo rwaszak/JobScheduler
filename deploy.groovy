@@ -228,13 +228,13 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         fi
         
         # Get App Insights connection string and store in Key Vault
-        echo "Setting app-insights-connection secret in Key Vault..."
+        echo "Setting applicationinsights-connection-string secret in Key Vault..."
         APP_INSIGHTS_CONN=\$(az monitor app-insights component show --app \$APP_INSIGHTS_NAME --resource-group ${resourceGroup} --query connectionString -o tsv)
         if [ -n "\$APP_INSIGHTS_CONN" ] && [ "\$APP_INSIGHTS_CONN" != "null" ]; then
-            az keyvault secret set --vault-name ${keyVaultName} --name "app-insights-connection" --value "\$APP_INSIGHTS_CONN" || {
-                echo "Failed to set app-insights-connection, retrying in 15 seconds..."
+            az keyvault secret set --vault-name ${keyVaultName} --name "applicationinsights-connection-string" --value "\$APP_INSIGHTS_CONN" || {
+                echo "Failed to set applicationinsights-connection-string, retrying in 15 seconds..."
                 sleep 15
-                az keyvault secret set --vault-name ${keyVaultName} --name "app-insights-connection" --value "\$APP_INSIGHTS_CONN"
+                az keyvault secret set --vault-name ${keyVaultName} --name "applicationinsights-connection-string" --value "\$APP_INSIGHTS_CONN"
             }
         else
             echo "WARNING: Could not retrieve Application Insights connection string"
@@ -256,7 +256,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         # Get Application Insights connection string for hardcoded testing
         APP_INSIGHTS_CONN=\$(az monitor app-insights component show --app jobscheduler-poc-insights --resource-group ${resourceGroup} --query connectionString -o tsv)
         
-        # Update app settings with hardcoded values for testing - bypassing Key Vault temporarily
+        # Update app settings to use Key Vault references for all secrets
         az functionapp config appsettings set \\
             --name ${functionAppName} \\
             --resource-group ${resourceGroup} \\
@@ -266,8 +266,8 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
                 FUNCTION_APP_EDIT_MODE="readwrite" \\
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \\
                 AzureWebJobsStorage="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-webjobs-storage)" \\
-                APPLICATIONINSIGHTS_CONNECTION_STRING="\$APP_INSIGHTS_CONN" \\
-                JobScheduler__Logging__DatadogApiKey="test-hardcoded-key-for-debugging" \\
+                APPLICATIONINSIGHTS_CONNECTION_STRING="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=applicationinsights-connection-string)" \\
+                JobScheduler__Logging__DatadogApiKey="@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=datadog-api-key)" \\
                 ASPNETCORE_ENVIRONMENT="dev" \\
                 DOTNET_ENVIRONMENT="dev" \\
                 DOCKER_REGISTRY_SERVER_URL="https://${env.DOCKER_REGISTRY_NAME}.azurecr.io" \\
@@ -286,7 +286,7 @@ def deployToExistingFunctionsApp(config, resourceGroup, functionAppName) {
         # Validate Key Vault references before sync
         echo "Validating Key Vault references..."
         az keyvault secret show --vault-name ${keyVaultName} --name "azure-webjobs-storage" --query "value" -o tsv > /dev/null || echo "WARNING: azure-webjobs-storage secret not found in Key Vault"
-        az keyvault secret show --vault-name ${keyVaultName} --name "app-insights-connection" --query "value" -o tsv > /dev/null || echo "WARNING: app-insights-connection secret not found in Key Vault"
+        az keyvault secret show --vault-name ${keyVaultName} --name "applicationinsights-connection-string" --query "value" -o tsv > /dev/null || echo "WARNING: applicationinsights-connection-string secret not found in Key Vault"
         az keyvault secret show --vault-name ${keyVaultName} --name "datadog-api-key" --query "value" -o tsv > /dev/null || echo "WARNING: datadog-api-key secret not found in Key Vault"
         az keyvault secret show --vault-name ${keyVaultName} --name "docker-registry-password" --query "value" -o tsv > /dev/null || echo "WARNING: docker-registry-password secret not found in Key Vault"
         
