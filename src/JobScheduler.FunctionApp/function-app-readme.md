@@ -32,7 +32,7 @@ Create `local.settings.json` in the project root (never commit this file):
     "DATADOG_API_KEY": "your-datadog-api-key-here",
     "DD_SITE": "us3.datadoghq.com",
     "DD_ENV": "dev",
-    "DD_SERVICE": "function-scheduler-poc"
+    "DD_SERVICE": "job-scheduler-poc"
   }
 }
 ```

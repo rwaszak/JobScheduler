@@ -52,27 +52,16 @@ namespace JobScheduler.FunctionApp.Services
 
         private async Task SendToDatadogAsync(object logEntry)
         {
-            try
+        try
+        {
+            // Get the Datadog API key from configuration (which Azure Functions resolves from Key Vault)
+            var datadogApiKey = _loggingOptions.DatadogApiKey;
+            
+            if (string.IsNullOrEmpty(datadogApiKey))
             {
-                // Use the secret manager to retrieve the Datadog API key
-                string? datadogApiKey = null;
-                try
-                {
-                    datadogApiKey = await _secretManager.GetSecretAsync("datadog-api-key");
-                }
-                catch (InvalidOperationException)
-                {
-                    _logger.LogWarning("Datadog API key 'datadog-api-key' not found in secret store - skipping Datadog logging");
-                    return;
-                }
-
-                if (string.IsNullOrEmpty(datadogApiKey))
-                {
-                    _logger.LogWarning("Datadog API key from secret store is null or empty - skipping Datadog logging");
-                    return;
-                }
-
-                var json = JsonSerializer.Serialize(logEntry);
+                _logger.LogWarning("Datadog API key not configured - skipping Datadog logging");
+                return;
+            }                var json = JsonSerializer.Serialize(logEntry);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
                 var url = $"https://http-intake.logs.{_loggingOptions.DatadogSite}/v1/input/{datadogApiKey}";
