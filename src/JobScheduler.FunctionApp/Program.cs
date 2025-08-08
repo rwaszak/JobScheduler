@@ -21,7 +21,11 @@ internal class Program
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
         
         // Add environment-specific configuration file
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") 
+            ?? throw new InvalidOperationException(
+                "ASPNETCORE_ENVIRONMENT environment variable is not set. " +
+                "This must be explicitly set to 'Development', 'dev', 'sit', 'uat', or 'prod' to ensure correct configuration loading.");
+        
         builder.Configuration.AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true);
 
         // Add environment variables - Required for Azure Functions runtime and secrets

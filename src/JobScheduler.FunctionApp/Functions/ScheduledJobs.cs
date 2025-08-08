@@ -34,8 +34,6 @@ namespace JobScheduler.FunctionApp.Functions
             try
             {
                 _logger.LogInformation("=== Starting scheduled job: {JobName} ===", jobName);
-                _logger.LogInformation("JobExecutor is null: {IsNull}", _jobExecutor == null);
-                _logger.LogInformation("ConfigProvider is null: {IsNull}", _configProvider == null);
 
                 if (_jobExecutor == null)
                 {
@@ -49,7 +47,6 @@ namespace JobScheduler.FunctionApp.Functions
                     return;
                 }
 
-                _logger.LogInformation("Getting job config for: {JobName}", jobName);
                 var config = _configProvider.GetJobConfig(jobName);
                 
                 if (config == null)
@@ -57,9 +54,6 @@ namespace JobScheduler.FunctionApp.Functions
                     _logger.LogError("Job config is null for job: {JobName}", jobName);
                     return;
                 }
-
-                _logger.LogInformation("Job config retrieved successfully. Endpoint: {Endpoint}", config.Endpoint);
-                _logger.LogInformation("Executing job with JobExecutor...");
                 
                 var result = await _jobExecutor.ExecuteAsync(config);
 
@@ -75,9 +69,7 @@ namespace JobScheduler.FunctionApp.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "=== CRITICAL ERROR in ExecuteJobSafely for job {JobName}: {Error} ===", jobName, ex.Message);
-                _logger.LogError("=== Exception Type: {ExceptionType} ===", ex.GetType().Name);
-                _logger.LogError("=== Stack Trace: {StackTrace} ===", ex.StackTrace);
+                _logger.LogError(ex, "=== Unexpected error in job {JobName}: {Error} ===", jobName, ex.Message);
                 
                 // Also try to log to console in case logger is broken
                 Console.WriteLine($"CRITICAL ERROR in job {jobName}: {ex.Message}");
