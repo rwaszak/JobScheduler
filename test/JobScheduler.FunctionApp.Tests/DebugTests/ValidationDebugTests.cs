@@ -12,7 +12,7 @@ public class ValidationDebugTests
     public void Validation_ShouldWork_WithDefaultConfiguration()
     {
         // Arrange 
-        using var setup = TestConfigurationHelper.CreateDefaultConfiguration();
+        using var setup = IndependentTestConfigurationHelper.CreateProductionStyleConfiguration();
         
         // Act - Try to get the validator
         var validator = setup.GetValidator();
@@ -41,7 +41,7 @@ public class ValidationDebugTests
     public void Validation_ShouldFail_WithMissingJob_BecauseJobNamesConstantsRequireAllJobs()
     {
         // Arrange - Test with empty configuration (should fail because ContainerAppHealth is missing)
-        using var setup = TestConfigurationHelper.CreateEmptyConfiguration();
+        using var setup = IndependentTestConfigurationHelper.CreateProductionValidatorTestConfiguration(new Dictionary<string, string?>());
         
         // Act
         var result = setup.ValidateConfiguration();

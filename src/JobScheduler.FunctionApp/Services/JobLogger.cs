@@ -40,7 +40,7 @@ namespace JobScheduler.FunctionApp.Services
                     name = "JobScheduler.JobLogger",
                     thread_name = System.Threading.Thread.CurrentThread.Name ?? "Unknown"
                 },
-                attributes = _loggingOptions.IncludeMetadata ? metadata : null
+                attributes = metadata
             };
 
             // Log to ILogger (Application Insights)

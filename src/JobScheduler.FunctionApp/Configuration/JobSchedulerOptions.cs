@@ -10,5 +10,4 @@ public class JobSchedulerOptions
     public Dictionary<string, JobDefinition> Jobs { get; init; } = new();
     
     public LoggingOptions Logging { get; init; } = new();
-    public MetricsOptions Metrics { get; init; } = new();
 }

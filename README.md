@@ -77,8 +77,8 @@ A secure, scalable Azure Functions application for executing scheduled HTTP-base
       }
     ],
     "Logging": {
-      "EnableDatadog": true,
-      "IncludeMetadata": true
+      "DatadogApiKey": "your-datadog-api-key",
+      "DatadogSite": "us3.datadoghq.com"
     }
   }
 }

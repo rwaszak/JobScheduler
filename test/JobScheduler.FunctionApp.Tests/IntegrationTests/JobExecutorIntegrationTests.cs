@@ -27,13 +27,21 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             var httpClientFactory = new TestHttpClientFactory(_httpClient);
             _secretManager = new EnvironmentSecretManager();
             
-            var testOptions = TestOptions.CreateDefault();
+            // Use the consolidated configuration helper instead of TestOptions
+            using var configSetup = IndependentTestConfigurationHelper.CreateBasicTestConfiguration();
+            var jobSchedulerOptions = Microsoft.Extensions.Options.Options.Create(new JobSchedulerOptions
+            {
+                Logging = new LoggingOptions
+                {
+                }
+            });
+            
             var testAppSettings = TestAppSettings.CreateDefault();
             var loggerProvider = new TestLoggerProvider<JobLogger>();
-            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, _secretManager, testOptions, testAppSettings);
+            _jobLogger = new JobLogger(loggerProvider, httpClientFactory, _secretManager, jobSchedulerOptions, testAppSettings);
             
             var metricsLoggerProvider = new TestLoggerProvider<JobMetrics>();
-            _jobMetrics = new JobMetrics(metricsLoggerProvider, testOptions);
+            _jobMetrics = new JobMetrics(metricsLoggerProvider);
 
             _jobExecutor = new JobExecutor(httpClientFactory, _secretManager, _jobLogger, _jobMetrics);
         }

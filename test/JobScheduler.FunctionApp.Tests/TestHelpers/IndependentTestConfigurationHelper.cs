@@ -72,6 +72,48 @@ public static class IndependentTestConfigurationHelper
     }
 
     /// <summary>
+    /// Creates a configuration matching the old TestConfigurationHelper.CreateDefaultConfiguration() for compatibility with tests that depend on production job names
+    /// </summary>
+    public static TestConfigurationSetup CreateProductionStyleConfiguration()
+    {
+        var configData = new Dictionary<string, string?>
+        {
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:JobName"] = JobNames.ContainerAppHealth,
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://test-api.example.com/health",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
+        };
+
+        return CreateProductionValidatorTestConfiguration(configData);
+    }
+
+    /// <summary>
+    /// Creates a test configuration that uses the production validator (ValidateJobSchedulerOptions) instead of the test validator.
+    /// Use this for tests that specifically need to test production validation logic.
+    /// </summary>
+    public static TestConfigurationSetup CreateProductionValidatorTestConfiguration(Dictionary<string, string?> configData)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configData)
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        
+        // Use production validator for testing production validation logic
+        services.AddHttpMethodTypeConverter();
+        services.Configure<JobSchedulerOptions>(configuration.GetSection(JobSchedulerOptions.SectionName));
+        services.AddSingleton<IValidateOptions<JobSchedulerOptions>>(provider => 
+            new ValidateJobSchedulerOptions(configuration));
+        services.AddSingleton<IJobConfigurationProvider, OptionsJobConfigurationProvider>();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        return new TestConfigurationSetup(serviceProvider, configuration);
+    }
+
+    /// <summary>
     /// Creates a test configuration with specific job data
     /// </summary>
     public static TestConfigurationSetup CreateCustomTestConfiguration(string jobName, JobDefinition jobDefinition)
@@ -151,6 +193,36 @@ public class TestConfigurationSetup : IDisposable
     }
 
     public IConfiguration GetConfiguration() => _configuration;
+
+    /// <summary>
+    /// Gets the options validator
+    /// </summary>
+    public IValidateOptions<JobSchedulerOptions> GetValidator()
+    {
+        return _serviceProvider.GetRequiredService<IValidateOptions<JobSchedulerOptions>>();
+    }
+
+    /// <summary>
+    /// Validates the current configuration and returns the result
+    /// </summary>
+    public ValidateOptionsResult ValidateConfiguration()
+    {
+        try
+        {
+            var validator = GetValidator();
+            
+            // Try to get options - this might trigger validation
+            var optionsAccessor = _serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>();
+            var options = optionsAccessor.Value;
+            
+            return validator.Validate(null, options);
+        }
+        catch (OptionsValidationException ex)
+        {
+            // If validation fails during options access, convert to ValidateOptionsResult
+            return ValidateOptionsResult.Fail(ex.Failures);
+        }
+    }
 
     public void Dispose()
     {
