@@ -62,11 +62,6 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
                 Headers = new Dictionary<string, string>
                 {
                     { "X-Request-ID", "test-12345" }
-                },
-                Tags = new Dictionary<string, string>
-                {
-                    { "category", "integration-test" },
-                    { "priority", "high" }
                 }
             };
 

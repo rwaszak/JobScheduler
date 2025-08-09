@@ -11,30 +11,30 @@ public class AppSettings
     /// <summary>
     /// Azure Key Vault URL for secret management
     /// </summary>
-    public string? KeyVaultUrl { get; set; }
+    public string? KeyVaultUrl { get; init; }
     
     /// <summary>
     /// Current environment name (dev, sit, uat, prod)
     /// </summary>
-    public string Environment { get; set; } = "unknown";
+    public required string Environment { get; init; }
     
     /// <summary>
     /// Datadog environment tag
     /// </summary>
-    public string DatadogEnvironment { get; set; } = "unknown";
+    public required string DatadogEnvironment { get; init; }
     
     /// <summary>
     /// Application version for monitoring and logging
     /// </summary>
-    public string Version { get; set; } = "1.0.0";
+    public required string Version { get; init; }
     
     /// <summary>
     /// Service name for Datadog and monitoring
     /// </summary>
-    public string ServiceName { get; set; } = "job-scheduler-functions";
+    public required string ServiceName { get; init; }
     
     /// <summary>
     /// Integration layer endpoint for development environment health checks
     /// </summary>
-    public string? IntegrationLayerDevHealthEndpoint { get; set; }
+    public string? IntegrationLayerDevHealthEndpoint { get; init; }
 }

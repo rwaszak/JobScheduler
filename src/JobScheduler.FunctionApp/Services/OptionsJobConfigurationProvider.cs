@@ -49,8 +49,7 @@ public class OptionsJobConfigurationProvider : IJobConfigurationProvider
                     BackoffMultiplier = definition.RetryPolicy.BackoffMultiplier,
                     MaxDelayMs = definition.RetryPolicy.MaxDelayMs,
                     RetryableStatusCodes = definition.RetryPolicy.RetryableStatusCodes.ToList()
-                },
-                Tags = definition.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                }
             };
         }
 

@@ -44,12 +44,6 @@ namespace JobScheduler.FunctionApp.Services
                     MaxAttempts = 3,
                     BaseDelayMs = 1000,
                     BackoffMultiplier = 2.0
-                },
-                Tags = new Dictionary<string, string>
-                {
-                    { "category", "health-check" },
-                    { "priority", "low" },
-                    { "team", "platform" }
                 }
             };
 

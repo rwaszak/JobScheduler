@@ -13,6 +13,5 @@ namespace JobScheduler.FunctionApp.Core.Models
         public object RequestBody { get; set; }
         public int TimeoutSeconds { get; set; } = 300;
         public RetryPolicy RetryPolicy { get; set; } = new();
-        public Dictionary<string, string> Tags { get; set; } = new();
     }
 }

@@ -6,14 +6,14 @@ namespace JobScheduler.FunctionApp.Configuration;
 public class JobDefinition
 {
     [Required]
-    public string JobName { get; init; } = string.Empty;
+    public required string JobName { get; init; }
     
     [Required]
     [Url]
-    public string Endpoint { get; init; } = string.Empty;
+    public required string Endpoint { get; init; }
     
     [Required]
-    public HttpMethod HttpMethod { get; set; } = null!;
+    public required HttpMethod HttpMethod { get; init; }
     
     public AuthenticationType AuthType { get; init; } = AuthenticationType.None;
     public string? AuthSecretName { get; init; }
@@ -23,5 +23,4 @@ public class JobDefinition
     public int TimeoutSeconds { get; init; } = 30;
     
     public RetryPolicyOptions RetryPolicy { get; init; } = new();
-    public Dictionary<string, string> Tags { get; init; } = new();
 }

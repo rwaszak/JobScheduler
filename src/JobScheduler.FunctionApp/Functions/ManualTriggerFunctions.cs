@@ -86,7 +86,6 @@ namespace JobScheduler.FunctionApp.Functions
                     config.JobName,
                     config.Endpoint,
                     config.HttpMethod,
-                    config.Tags,
                     HasAuth = !string.IsNullOrEmpty(config.AuthSecretName)
                 })
                 .OrderBy(j => j.JobName);

@@ -103,12 +103,6 @@ namespace JobScheduler.FunctionApp.Tests.TestHelpers
             return this;
         }
 
-        public TestJobConfigurationBuilder WithTags(Dictionary<string, string> tags)
-        {
-            _config.Tags = tags;
-            return this;
-        }
-
         public JobConfig Build() => _config;
     }
 }

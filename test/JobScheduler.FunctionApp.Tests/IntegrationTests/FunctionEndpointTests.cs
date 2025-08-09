@@ -93,8 +93,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
                     JobName = "health-check-api",
                     Endpoint = "https://health.api.com/status",
                     HttpMethod = HttpMethod.Get,
-                    AuthType = AuthenticationType.None,
-                    Tags = new Dictionary<string, string> { { "category", "health" } }
+                    AuthType = AuthenticationType.None
                 },
                 new JobConfig
                 {
@@ -102,8 +101,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
                     Endpoint = "https://sync.api.com/data",
                     HttpMethod = HttpMethod.Post,
                     AuthType = AuthenticationType.ApiKey,
-                    AuthSecretName = "api-key-secret",
-                    Tags = new Dictionary<string, string> { { "category", "sync" } }
+                    AuthSecretName = "api-key-secret"
                 }
             };
 

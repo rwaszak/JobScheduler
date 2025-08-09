@@ -187,8 +187,7 @@ public class ManualTriggerFunctionTests
                 JobName = "job-1",
                 Endpoint = "https://api1.test.com",
                 HttpMethod = HttpMethod.Get,
-                AuthType = AuthenticationType.None,
-                Tags = new Dictionary<string, string> { { "priority", "high" } }
+                AuthType = AuthenticationType.None
             },
             new JobConfig
             {
@@ -196,8 +195,7 @@ public class ManualTriggerFunctionTests
                 Endpoint = "https://api2.test.com",
                 HttpMethod = HttpMethod.Post,
                 AuthType = AuthenticationType.Bearer,
-                AuthSecretName = "secret-2",
-                Tags = new Dictionary<string, string> { { "priority", "low" } }
+                AuthSecretName = "secret-2"
             }
         };
 
