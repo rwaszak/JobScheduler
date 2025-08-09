@@ -17,7 +17,15 @@ public class ConfigurationBindingTests
         {
             ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
             ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
-            ["JobScheduler:Jobs:test-job:HttpMethod"] = "GET"
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = "GET",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxAttempts"] = "3",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BaseDelayMs"] = "1000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BackoffMultiplier"] = "2.0",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxDelayMs"] = "30000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         var configuration = new ConfigurationBuilder()
@@ -50,7 +58,15 @@ public class ConfigurationBindingTests
         {
             ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
             ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
-            ["JobScheduler:Jobs:test-job:HttpMethod"] = "INVALID"
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = "INVALID",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxAttempts"] = "3",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BaseDelayMs"] = "1000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BackoffMultiplier"] = "2.0",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxDelayMs"] = "30000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         var configuration = new ConfigurationBuilder()
@@ -79,7 +95,15 @@ public class ConfigurationBindingTests
         {
             ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
             ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
-            ["JobScheduler:Jobs:test-job:HttpMethod"] = "INVALID"
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = "INVALID",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxAttempts"] = "3",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BaseDelayMs"] = "1000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BackoffMultiplier"] = "2.0",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxDelayMs"] = "30000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         var configuration = new ConfigurationBuilder()
@@ -117,7 +141,15 @@ public class ConfigurationBindingTests
         {
             ["JobScheduler:Jobs:test-job:JobName"] = "test-job",
             ["JobScheduler:Jobs:test-job:Endpoint"] = "https://example.com",
-            ["JobScheduler:Jobs:test-job:HttpMethod"] = configValue
+            ["JobScheduler:Jobs:test-job:HttpMethod"] = configValue,
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxAttempts"] = "3",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BaseDelayMs"] = "1000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:BackoffMultiplier"] = "2.0",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:MaxDelayMs"] = "30000",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            ["JobScheduler:Jobs:test-job:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         var configuration = new ConfigurationBuilder()

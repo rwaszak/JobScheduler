@@ -33,6 +33,7 @@ namespace JobScheduler.FunctionApp.Tests.IntegrationTests
             {
                 Logging = new LoggingOptions
                 {
+                    DatadogSite = "us3.datadoghq.com"
                 }
             });
             

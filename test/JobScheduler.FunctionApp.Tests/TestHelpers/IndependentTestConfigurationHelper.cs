@@ -24,7 +24,15 @@ public static class IndependentTestConfigurationHelper
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:Endpoint"] = "https://test-api.example.com/health",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:TimeoutSeconds"] = "30"
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxAttempts"] = "3",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BaseDelayMs"] = "1000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BackoffMultiplier"] = "2.0",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxDelayMs"] = "30000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         return CreateTestConfiguration(configData);
@@ -43,6 +51,14 @@ public static class IndependentTestConfigurationHelper
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:AuthType"] = "none",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxAttempts"] = "3",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BaseDelayMs"] = "1000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BackoffMultiplier"] = "2.0",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxDelayMs"] = "30000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:3"] = "504",
 
             // Auth job with bearer token
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:JobName"] = TestJobNames.TestAuthJob,
@@ -51,13 +67,28 @@ public static class IndependentTestConfigurationHelper
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:AuthType"] = "bearer",
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:AuthSecretName"] = "TEST_AUTH_TOKEN",
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:TimeoutSeconds"] = "60",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:MaxAttempts"] = "5",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:BaseDelayMs"] = "2000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:BackoffMultiplier"] = "1.5",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:MaxDelayMs"] = "60000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:3"] = "504",
 
             // Error handling job
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:JobName"] = TestJobNames.TestErrorJob,
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:Endpoint"] = "https://test-api.example.com/error-endpoint",
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:TimeoutSeconds"] = "15"
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:TimeoutSeconds"] = "15",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:MaxAttempts"] = "1",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:BaseDelayMs"] = "500",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:BackoffMultiplier"] = "1.0",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:MaxDelayMs"] = "500",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:0"] = "500",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:2"] = "503"
         };
 
         return CreateTestConfiguration(configData);
@@ -82,7 +113,15 @@ public static class IndependentTestConfigurationHelper
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:Endpoint"] = "https://test-api.example.com/health",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30"
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:MaxAttempts"] = "3",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:BaseDelayMs"] = "1000",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:BackoffMultiplier"] = "2.0",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:MaxDelayMs"] = "30000",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{JobNames.ContainerAppHealth}:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         return CreateProductionValidatorTestConfiguration(configData);
@@ -124,8 +163,18 @@ public static class IndependentTestConfigurationHelper
             [$"JobScheduler:Jobs:{jobName}:Endpoint"] = jobDefinition.Endpoint,
             [$"JobScheduler:Jobs:{jobName}:HttpMethod"] = jobDefinition.HttpMethod.ToString().ToUpper(),
             [$"JobScheduler:Jobs:{jobName}:AuthType"] = jobDefinition.AuthType.ToString().ToLower(),
-            [$"JobScheduler:Jobs:{jobName}:TimeoutSeconds"] = jobDefinition.TimeoutSeconds.ToString()
+            [$"JobScheduler:Jobs:{jobName}:TimeoutSeconds"] = jobDefinition.TimeoutSeconds.ToString(),
+            [$"JobScheduler:Jobs:{jobName}:RetryPolicy:MaxAttempts"] = jobDefinition.RetryPolicy.MaxAttempts.ToString(),
+            [$"JobScheduler:Jobs:{jobName}:RetryPolicy:BaseDelayMs"] = jobDefinition.RetryPolicy.BaseDelayMs.ToString(),
+            [$"JobScheduler:Jobs:{jobName}:RetryPolicy:BackoffMultiplier"] = jobDefinition.RetryPolicy.BackoffMultiplier.ToString("F1"),
+            [$"JobScheduler:Jobs:{jobName}:RetryPolicy:MaxDelayMs"] = jobDefinition.RetryPolicy.MaxDelayMs.ToString()
         };
+
+        // Add retry status codes
+        for (int i = 0; i < jobDefinition.RetryPolicy.RetryableStatusCodes.Count; i++)
+        {
+            configData[$"JobScheduler:Jobs:{jobName}:RetryPolicy:RetryableStatusCodes:{i}"] = jobDefinition.RetryPolicy.RetryableStatusCodes[i].ToString();
+        }
 
         if (!string.IsNullOrEmpty(jobDefinition.AuthSecretName))
         {

@@ -6,5 +6,5 @@ public class JobSchedulerOptions
 
     public Dictionary<string, JobDefinition> Jobs { get; init; } = new();
     
-    public LoggingOptions Logging { get; init; } = new();
+    public required LoggingOptions Logging { get; init; }
 }

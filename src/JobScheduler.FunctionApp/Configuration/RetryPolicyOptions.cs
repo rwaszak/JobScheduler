@@ -5,16 +5,16 @@ namespace JobScheduler.FunctionApp.Configuration;
 public class RetryPolicyOptions
 {
     [Range(1, 10)]
-    public int MaxAttempts { get; init; } = 3;
+    public required int MaxAttempts { get; init; }
     
     [Range(100, 30000)]
-    public int BaseDelayMs { get; init; } = 1000;
+    public required int BaseDelayMs { get; init; }
     
     [Range(1.0, 5.0)]
-    public double BackoffMultiplier { get; init; } = 2.0;
+    public required double BackoffMultiplier { get; init; }
     
     [Range(1000, 300000)]
-    public int MaxDelayMs { get; init; } = 30000;
+    public required int MaxDelayMs { get; init; }
     
-    public List<int> RetryableStatusCodes { get; init; } = new() { 429, 502, 503, 504 };
+    public required List<int> RetryableStatusCodes { get; init; }
 }

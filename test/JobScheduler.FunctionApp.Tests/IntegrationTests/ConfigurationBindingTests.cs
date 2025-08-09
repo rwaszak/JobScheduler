@@ -27,6 +27,14 @@ public class ConfigurationBindingTests
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:AuthType"] = "none",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxAttempts"] = "3",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BaseDelayMs"] = "1000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BackoffMultiplier"] = "2.0",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxDelayMs"] = "30000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:3"] = "504",
             
             // Comprehensive auth job with all properties
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:JobName"] = TestJobNames.TestAuthJob,
@@ -36,6 +44,14 @@ public class ConfigurationBindingTests
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:AuthSecretName"] = "TEST_TOKEN",
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RequestBody"] = "{\"action\":\"process\"}",
             [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:TimeoutSeconds"] = "60",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:MaxAttempts"] = "5",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:BaseDelayMs"] = "2000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:BackoffMultiplier"] = "1.5",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:MaxDelayMs"] = "60000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestAuthJob}:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         using var setup = IndependentTestConfigurationHelper.CreateTestConfiguration(configData);
@@ -73,7 +89,15 @@ public class ConfigurationBindingTests
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:Endpoint"] = "https://example.com",
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:HttpMethod"] = "INVALID_METHOD",
             [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:TimeoutSeconds"] = "30"
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:MaxAttempts"] = "3",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:BaseDelayMs"] = "1000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:BackoffMultiplier"] = "2.0",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:MaxDelayMs"] = "30000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestErrorJob}:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         // Act & Assert - Should fail during configuration access due to invalid HttpMethod
@@ -94,7 +118,15 @@ public class ConfigurationBindingTests
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:Endpoint"] = "https://example.com/health",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:HttpMethod"] = "GET",
             [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:AuthType"] = "none",
-            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:TimeoutSeconds"] = "30"
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:TimeoutSeconds"] = "30",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxAttempts"] = "3",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BaseDelayMs"] = "1000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:BackoffMultiplier"] = "2.0",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:MaxDelayMs"] = "30000",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:0"] = "429",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:1"] = "502",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:2"] = "503",
+            [$"JobScheduler:Jobs:{TestJobNames.TestHealthCheck}:RetryPolicy:RetryableStatusCodes:3"] = "504"
         };
 
         using var setup = IndependentTestConfigurationHelper.CreateTestConfiguration(configData);

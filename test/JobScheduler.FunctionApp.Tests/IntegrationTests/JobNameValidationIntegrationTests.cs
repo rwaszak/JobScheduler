@@ -28,8 +28,20 @@ public class JobValidationFrameworkTests
                     Endpoint = "https://api.example.com/health",
                     HttpMethod = HttpMethod.Get,
                     AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
+                    TimeoutSeconds = 30,
+                    RetryPolicy = new RetryPolicyOptions
+                    {
+                        MaxAttempts = 3,
+                        BaseDelayMs = 1000,
+                        BackoffMultiplier = 2.0,
+                        MaxDelayMs = 30000,
+                        RetryableStatusCodes = new List<int> { 429, 502, 503, 504 }
+                    }
                 }
+            },
+            Logging = new LoggingOptions
+            {
+                DatadogSite = "us3.datadoghq.com"
             }
         };
 
@@ -46,8 +58,12 @@ public class JobValidationFrameworkTests
         // Arrange - Missing required job configuration (empty configuration)
         var options = new JobSchedulerOptions
         {
-            Jobs = new Dictionary<string, JobDefinition>()
+            Jobs = new Dictionary<string, JobDefinition>(),
             // No jobs configured, but validator expects TestHealthCheck
+            Logging = new LoggingOptions
+            {
+                DatadogSite = "us3.datadoghq.com"
+            }
         };
 
         var validator = TestJobSchedulerOptionsValidator.ForBasicHealthCheck();
@@ -74,7 +90,15 @@ public class JobValidationFrameworkTests
                     Endpoint = "https://api.example.com/health",
                     HttpMethod = HttpMethod.Get,
                     AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
+                    TimeoutSeconds = 30,
+                    RetryPolicy = new RetryPolicyOptions
+                    {
+                        MaxAttempts = 3,
+                        BaseDelayMs = 1000,
+                        BackoffMultiplier = 2.0,
+                        MaxDelayMs = 30000,
+                        RetryableStatusCodes = new List<int> { 429, 502, 503, 504 }
+                    }
                 },
                 ["unexpected-job"] = new JobDefinition
                 {
@@ -82,8 +106,20 @@ public class JobValidationFrameworkTests
                     Endpoint = "https://api.example.com/unexpected",
                     HttpMethod = HttpMethod.Get,
                     AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
+                    TimeoutSeconds = 30,
+                    RetryPolicy = new RetryPolicyOptions
+                    {
+                        MaxAttempts = 3,
+                        BaseDelayMs = 1000,
+                        BackoffMultiplier = 2.0,
+                        MaxDelayMs = 30000,
+                        RetryableStatusCodes = new List<int> { 429, 502, 503, 504 }
+                    }
                 }
+            },
+            Logging = new LoggingOptions
+            {
+                DatadogSite = "us3.datadoghq.com"
             }
         };
 
@@ -127,7 +163,15 @@ public class JobValidationFrameworkTests
                     Endpoint = "https://api.example.com/health",
                     HttpMethod = HttpMethod.Get,
                     AuthType = AuthenticationType.None,
-                    TimeoutSeconds = 30
+                    TimeoutSeconds = 30,
+                    RetryPolicy = new RetryPolicyOptions
+                    {
+                        MaxAttempts = 3,
+                        BaseDelayMs = 1000,
+                        BackoffMultiplier = 2.0,
+                        MaxDelayMs = 30000,
+                        RetryableStatusCodes = new List<int> { 429, 502, 503, 504 }
+                    }
                 },
                 [TestJobNames.TestAuthJob] = new JobDefinition
                 {
@@ -136,8 +180,20 @@ public class JobValidationFrameworkTests
                     HttpMethod = HttpMethod.Post,
                     AuthType = AuthenticationType.Bearer,
                     AuthSecretName = "TEST_TOKEN",
-                    TimeoutSeconds = 60
+                    TimeoutSeconds = 60,
+                    RetryPolicy = new RetryPolicyOptions
+                    {
+                        MaxAttempts = 3,
+                        BaseDelayMs = 1000,
+                        BackoffMultiplier = 2.0,
+                        MaxDelayMs = 30000,
+                        RetryableStatusCodes = new List<int> { 429, 502, 503, 504 }
+                    }
                 }
+            },
+            Logging = new LoggingOptions
+            {
+                DatadogSite = "us3.datadoghq.com"
             }
         };
 

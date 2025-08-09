@@ -4,7 +4,14 @@
       "test-job": {
         "JobName": "test-job",
         "Endpoint": "https://example.com",
-        "HttpMethod": "INVALID_METHOD"
+        "HttpMethod": "INVALID_METHOD",
+        "RetryPolicy": {
+          "MaxAttempts": 3,
+          "BaseDelayMs": 1000,
+          "BackoffMultiplier": 2.0,
+          "MaxDelayMs": 30000,
+          "RetryableStatusCodes": [429, 502, 503, 504]
+        }
       }
     }
   }

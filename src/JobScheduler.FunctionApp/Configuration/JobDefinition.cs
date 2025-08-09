@@ -22,5 +22,5 @@ public class JobDefinition
     [Range(1, 300)]
     public int TimeoutSeconds { get; init; } = 30;
     
-    public RetryPolicyOptions RetryPolicy { get; init; } = new();
+    public required RetryPolicyOptions RetryPolicy { get; init; }
 }
